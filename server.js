@@ -193,11 +193,13 @@ app.get('*', (req, res) => {
 io.on('connection', (socket) => {
   let currentRoom = null;
   let currentUser = null;
+  let currentColor = '#f0c060';
 
-  socket.on('join', ({ roomCode, userName }) => {
+  socket.on('join', ({ roomCode, userName, userColor }) => {
     const code = roomCode.toUpperCase().trim();
     currentRoom = code;
     currentUser = userName;
+    currentColor = userColor || '#f0c060';
 
     socket.join(code);
 
@@ -212,7 +214,7 @@ io.on('connection', (socket) => {
       };
     }
 
-    rooms[code].users[socket.id] = { name: userName, id: socket.id };
+    rooms[code].users[socket.id] = { name: userName, id: socket.id, color: userColor };
 
     // Send current room state to joining user
     socket.emit('room_state', {
@@ -235,6 +237,7 @@ io.on('connection', (socket) => {
     io.to(currentRoom).emit('chat_msg', {
       message,
       userName,
+      color: currentColor,
       timestamp: Date.now(),
       id: socket.id
     });
@@ -290,6 +293,35 @@ io.on('connection', (socket) => {
   socket.on('countdown_start', () => {
     if (!currentRoom) return;
     io.to(currentRoom).emit('countdown_start', { from: currentUser });
+  });
+
+  // Knock to join
+  socket.on('knock', ({ roomCode, userName, userColor }) => {
+    const code = roomCode.toUpperCase().trim();
+    if (!rooms[code]) {
+      socket.emit('knock_result', { accepted: false, reason: 'Room does not exist' });
+      return;
+    }
+    // Send knock to everyone already in the room
+    socket.to(code).emit('incoming_knock', { name: userName, color: userColor, id: socket.id });
+  });
+
+  socket.on('knock_response', ({ knockerId, accepted }) => {
+    io.to(knockerId).emit('knock_result', { accepted });
+  });
+
+  // Heartbeat for drift correction
+  socket.on('heartbeat', ({ currentTime }) => {
+    if (!currentRoom || !rooms[currentRoom]) return;
+    if (rooms[currentRoom].isPlaying) {
+      // Calculate expected time accounting for elapsed time since last update
+      const elapsed = (Date.now() - rooms[currentRoom].lastUpdate) / 1000;
+      const expectedTime = rooms[currentRoom].currentTime + elapsed;
+      const drift = Math.abs(currentTime - expectedTime);
+      if (drift > 2) {
+        socket.emit('heartbeat_correction', { currentTime: expectedTime });
+      }
+    }
   });
 
   socket.on('disconnect', () => {

@@ -210,6 +210,29 @@
     @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
     @keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateX(20px); } }
 
+    /* COLOR PICKER */
+    .color-picker-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .color-swatch { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: var(--transition); flex-shrink: 0; }
+    .color-swatch:hover { transform: scale(1.15); }
+    .color-swatch.selected { border-color: #fff; box-shadow: 0 0 0 2px rgba(255,255,255,0.3); }
+
+    /* KNOCK MODAL */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 800; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .modal-card { background: var(--bg2); border: 1px solid rgba(240,192,96,0.25); border-radius: 20px; padding: 32px 28px; width: min(360px, 90vw); text-align: center; box-shadow: 0 0 60px rgba(0,0,0,0.6); }
+    .modal-title { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    .modal-sub { font-size: 0.82rem; color: var(--text-dim); margin-bottom: 24px; line-height: 1.5; }
+    .modal-actions { display: flex; gap: 10px; justify-content: center; }
+    .btn-accept { background: linear-gradient(135deg, rgba(0,212,255,0.8), rgba(0,180,220,0.8)); border: none; border-radius: 100px; color: #06080f; font-family: 'Syne', sans-serif; font-size: 0.85rem; font-weight: 700; padding: 10px 24px; cursor: pointer; transition: var(--transition); }
+    .btn-accept:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,212,255,0.3); }
+    .btn-deny { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 100px; color: var(--text-dim); font-family: 'Syne', sans-serif; font-size: 0.85rem; font-weight: 600; padding: 10px 24px; cursor: pointer; transition: var(--transition); }
+    .btn-deny:hover { border-color: rgba(255,80,80,0.4); color: #ff6060; }
+    .knock-avatar { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 800; margin: 0 auto 16px; border: 2px solid rgba(255,255,255,0.15); }
+
+    /* SHARE LINK BTN */
+    .share-btn { background: var(--cyan-dim); border: 1px solid rgba(0,212,255,0.25); border-radius: 100px; color: var(--cyan); cursor: pointer; padding: 4px 12px; font-size: 0.72rem; font-family: 'Syne', sans-serif; font-weight: 600; transition: var(--transition); letter-spacing: 0.5px; }
+    .share-btn:hover { background: rgba(0,212,255,0.2); }
+
     /* MOBILE */
     @media (max-width: 768px) {
       #chat-panel { position: fixed; bottom: 0; left: 0; right: 0; width: 100% !important; height: 70vh; z-index: 300; border-left: none; border-top: 1px solid var(--glass-border); border-radius: 20px 20px 0 0; transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.4,0,0.2,1); }
@@ -241,6 +264,10 @@
         <label class="input-label">Your Name</label>
         <input class="lobby-input" id="create-name" type="text" placeholder="Enter your name" maxlength="24" />
       </div>
+      <div class="input-group">
+        <label class="input-label">Your Color</label>
+        <div class="color-picker-row" id="create-colors"></div>
+      </div>
       <div class="room-code-display">
         <div class="code" id="generated-code">——</div>
         <div class="hint">Your room code — share with your partner</div>
@@ -253,10 +280,15 @@
         <input class="lobby-input" id="join-name" type="text" placeholder="Enter your name" maxlength="24" />
       </div>
       <div class="input-group">
+        <label class="input-label">Your Color</label>
+        <div class="color-picker-row" id="join-colors"></div>
+      </div>
+      <div class="input-group">
         <label class="input-label">Room Code</label>
         <input class="lobby-input code-input" id="join-code" type="text" placeholder="XXXXXX" maxlength="6" />
       </div>
       <button class="btn-primary" onclick="joinRoom()">Join Watch Party</button>
+      <button class="btn-primary" style="background:rgba(0,212,255,0.15);border:1px solid rgba(0,212,255,0.3);color:var(--cyan);margin-top:-4px" onclick="knockRoom()">🔔 Knock to Join</button>
     </div>
   </div>
 </div>
@@ -271,6 +303,7 @@
         <span id="viewer-count-text">1 watching</span>
       </div>
       <div class="room-badge" id="room-badge" onclick="copyRoomCode()" title="Click to copy room code">——</div>
+      <button class="share-btn" onclick="shareRoomLink()" title="Copy shareable link">🔗 Share Link</button>
     </div>
     <div class="header-actions">
       <button class="icon-btn" id="search-toggle-btn" onclick="toggleSearch()">
@@ -409,6 +442,7 @@
 let socket = null;
 let myName = '';
 let myRoom = '';
+let myColor = '#f0c060';
 let isSyncingFromRemote = false;
 let typingTimer = null;
 let isTyping = false;
@@ -417,6 +451,11 @@ let chatVisible = true;
 let searchVisible = false;
 let roomUsers = [];
 let isMobile = () => window.innerWidth <= 768;
+
+const USER_COLORS = [
+  '#f0c060','#00d4ff','#ff6b9d','#7c6cf0','#4ade80',
+  '#fb923c','#e879f9','#34d399','#f87171','#60a5fa'
+];
 
 // ══════════════════════════════════════════════
 //  LOBBY
@@ -438,9 +477,40 @@ function generateCode() {
   return code;
 }
 
+function initColorPicker(containerId) {
+  const container = document.getElementById(containerId);
+  USER_COLORS.forEach((c, i) => {
+    const sw = document.createElement('div');
+    sw.className = 'color-swatch' + (i === 0 ? ' selected' : '');
+    sw.style.background = c;
+    sw.title = c;
+    sw.onclick = () => {
+      myColor = c;
+      container.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+      sw.classList.add('selected');
+      // sync the other picker too
+      const otherId = containerId === 'create-colors' ? 'join-colors' : 'create-colors';
+      document.querySelectorAll(`#${otherId} .color-swatch`).forEach((s, j) => s.classList.toggle('selected', j === i));
+    };
+    container.appendChild(sw);
+  });
+}
+
 // Generate on load
 window.addEventListener('DOMContentLoaded', () => {
   generateCode();
+  initColorPicker('create-colors');
+  initColorPicker('join-colors');
+
+  // Auto-fill room code from URL: /?room=ABC123
+  const params = new URLSearchParams(window.location.search);
+  const roomParam = params.get('room');
+  if (roomParam && roomParam.length === 6) {
+    switchLobbyTab('join');
+    document.getElementById('join-code').value = roomParam.toUpperCase();
+    document.getElementById('join-name').focus();
+  }
+
   document.getElementById('create-name').addEventListener('keydown', e => { if (e.key === 'Enter') createRoom(); });
   document.getElementById('join-name').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('join-code').focus(); });
   document.getElementById('join-code').addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom(); });
@@ -461,6 +531,33 @@ function joinRoom() {
   enterApp(name, code);
 }
 
+function knockRoom() {
+  const name = document.getElementById('join-name').value.trim();
+  const code = document.getElementById('join-code').value.trim().toUpperCase();
+  if (!name) { showToast('Enter your name first', 'gold'); return; }
+  if (code.length !== 6) { showToast('Enter a valid 6-character room code', 'gold'); return; }
+
+  // Connect socket temporarily just to knock
+  const knockSocket = io();
+  knockSocket.on('connect', () => {
+    knockSocket.emit('knock', { roomCode: code, userName: name, userColor: myColor });
+  });
+
+  // Show waiting UI
+  showKnockWaiting(name, code, knockSocket);
+
+  knockSocket.on('knock_result', ({ accepted, reason }) => {
+    document.getElementById('knock-waiting-modal')?.remove();
+    if (accepted) {
+      knockSocket.disconnect();
+      enterApp(name, code);
+    } else {
+      knockSocket.disconnect();
+      showToast(reason || 'Your knock was declined', 'gold');
+    }
+  });
+}
+
 function enterApp(name, code) {
   myName = name;
   myRoom = code;
@@ -479,7 +576,7 @@ function initSocket() {
   socket = io();
 
   socket.on('connect', () => {
-    socket.emit('join', { roomCode: myRoom, userName: myName });
+    socket.emit('join', { roomCode: myRoom, userName: myName, userColor: myColor });
   });
 
   socket.on('room_state', ({ videoUrl, videoType, currentTime, isPlaying, users }) => {
@@ -515,8 +612,8 @@ function initSocket() {
     showToast(`${name} left`, 'gold');
   });
 
-  socket.on('chat_msg', ({ message, userName, timestamp, id }) => {
-    addChatMessage(userName, message, timestamp, id === socket.id);
+  socket.on('chat_msg', ({ message, userName, timestamp, id, color }) => {
+    addChatMessage(userName, message, timestamp, id === socket.id, color);
   });
 
   socket.on('sync_play', ({ currentTime }) => {
@@ -569,6 +666,26 @@ function initSocket() {
   socket.on('countdown_start', ({ from }) => {
     runCountdown();
   });
+
+  socket.on('incoming_knock', ({ name, color, id }) => {
+    showKnockModal(name, color, id);
+  });
+
+  socket.on('heartbeat_correction', ({ currentTime }) => {
+    const v = document.getElementById('video-player');
+    if (!v || v.style.display === 'none' || v.paused) return;
+    isSyncingFromRemote = true;
+    v.currentTime = currentTime;
+    isSyncingFromRemote = false;
+    showToast('Synced with partner', '');
+  });
+
+  // Heartbeat every 5 seconds
+  setInterval(() => {
+    const v = document.getElementById('video-player');
+    if (!socket || !v || v.style.display === 'none' || v.paused) return;
+    socket.emit('heartbeat', { currentTime: v.currentTime });
+  }, 5000);
 }
 
 // ══════════════════════════════════════════════
@@ -578,9 +695,10 @@ function updateUsersUI() {
   const list = document.getElementById('users-list');
   list.innerHTML = '';
   roomUsers.forEach(u => {
+    const color = u.color || '#f0c060';
     const pill = document.createElement('div');
     pill.className = 'user-pill';
-    pill.innerHTML = `<div class="dot">${u.name.charAt(0).toUpperCase()}</div>${u.name}`;
+    pill.innerHTML = `<div class="dot" style="color:${color};border-color:${color}40">${u.name.charAt(0).toUpperCase()}</div>${u.name}`;
     list.appendChild(pill);
   });
   const count = roomUsers.length;
@@ -597,7 +715,10 @@ function updatePartnerAvatar() {
   const avatar = document.getElementById('partner-avatar');
   if (others.length > 0) {
     const partner = others[0];
+    const c = partner.color || '#00d4ff';
     document.getElementById('partner-initials').textContent = partner.name.charAt(0).toUpperCase();
+    document.getElementById('partner-initials').style.color = c;
+    document.getElementById('partner-initials').style.borderColor = c + '66';
     document.getElementById('partner-name-display').textContent = partner.name;
     avatar.classList.add('show');
   } else {
@@ -635,6 +756,58 @@ function copyRoomCode() {
   navigator.clipboard.writeText(myRoom).then(() => showToast(`Room code ${myRoom} copied!`, 'gold')).catch(() => {});
 }
 
+function shareRoomLink() {
+  const url = `${window.location.origin}${window.location.pathname}?room=${myRoom}`;
+  navigator.clipboard.writeText(url).then(() => showToast('Share link copied! Send it to your partner.', 'cyan')).catch(() => {});
+}
+
+function showKnockModal(name, color, knockerId) {
+  const existing = document.getElementById('knock-modal');
+  if (existing) existing.remove();
+  const c = color || '#f0c060';
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'knock-modal';
+  overlay.innerHTML = `
+    <div class="modal-card">
+      <div class="knock-avatar" style="background:${c}22;border-color:${c}66;color:${c}">${name.charAt(0).toUpperCase()}</div>
+      <div class="modal-title">Someone's at the door 🔔</div>
+      <div class="modal-sub"><strong style="color:${c}">${escapeHtml(name)}</strong> wants to join your watch party.</div>
+      <div class="modal-actions">
+        <button class="btn-accept" onclick="respondKnock('${knockerId}', true)">Let them in</button>
+        <button class="btn-deny" onclick="respondKnock('${knockerId}', false)">Decline</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  // Auto-dismiss after 30s
+  setTimeout(() => { if (document.getElementById('knock-modal')) { respondKnock(knockerId, false); } }, 30000);
+}
+
+function respondKnock(knockerId, accepted) {
+  document.getElementById('knock-modal')?.remove();
+  if (socket) socket.emit('knock_response', { knockerId, accepted });
+}
+
+function showKnockWaiting(name, code, knockSocket) {
+  const existing = document.getElementById('knock-waiting-modal');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'knock-waiting-modal';
+  overlay.innerHTML = `
+    <div class="modal-card">
+      <div class="waiting-icon" style="margin:0 auto 16px;width:48px;height:48px"></div>
+      <div class="modal-title">Knock knock… 🔔</div>
+      <div class="modal-sub">Waiting for the host to let you in to room <strong style="color:var(--gold)">${escapeHtml(code)}</strong>.</div>
+      <div class="modal-actions">
+        <button class="btn-deny" onclick="document.getElementById('knock-waiting-modal').remove(); knockSocket_cancel()">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  // Store cancel ref
+  window.knockSocket_cancel = () => knockSocket.disconnect();
+}
+
 function addSystemMessage(text) {
   const msg = document.createElement('div');
   msg.className = 'chat-message system';
@@ -642,16 +815,18 @@ function addSystemMessage(text) {
   appendChatMessage(msg);
 }
 
-function addChatMessage(name, text, timestamp, isOwn) {
+function addChatMessage(name, text, timestamp, isOwn, color) {
   const msg = document.createElement('div');
   msg.className = 'chat-message' + (isOwn ? ' own' : '');
   const time = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const nameColor = color || (isOwn ? myColor : '#f0c060');
+  const bubbleBorder = isOwn ? `border-color:${nameColor}30;background:${nameColor}12` : '';
   msg.innerHTML = `
     <div class="msg-meta">
-      <span class="msg-name">${escapeHtml(name)}</span>
+      <span class="msg-name" style="color:${nameColor}">${escapeHtml(name)}</span>
       <span class="msg-time">${time}</span>
     </div>
-    <div class="msg-bubble">${escapeHtml(text)}</div>`;
+    <div class="msg-bubble" style="${bubbleBorder}">${escapeHtml(text)}</div>`;
   appendChatMessage(msg);
 }
 
@@ -906,10 +1081,6 @@ vid.addEventListener('canplay', () => {
 vid.addEventListener('timeupdate', updateProgressBar);
 vid.addEventListener('loadedmetadata', updateProgressBar);
 
-// Drift correction
-setInterval(() => {
-  if (!socket || vid.paused || vid.style.display === 'none') return;
-}, 5000);
 
 function updateProgressBar() {
   if (!vid.duration) return;
