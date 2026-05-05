@@ -835,7 +835,17 @@ async function toggleCamStrip() {
 
 async function startCam() {
   try {
-    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    localStream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      }
+    });
+    // Duck movie volume while mic is live
+    const movieVid = document.getElementById('video-player');
+    if (movieVid) movieVid.volume = Math.min(movieVid.volume, 0.4);
     camOn = true; micOn = true;
     const localVid = document.getElementById('local-video');
     localVid.srcObject = localStream;
@@ -932,6 +942,9 @@ function stopCam() {
   if (peerConnection) { peerConnection.close(); peerConnection = null; }
   document.getElementById('local-video').srcObject = null;
   camOn = false; micOn = false;
+  // Restore movie volume
+  const movieVid = document.getElementById('video-player');
+  if (movieVid) movieVid.volume = 1;
   document.getElementById('btn-toggle-cam').classList.remove('active');
   document.getElementById('btn-toggle-mic').classList.remove('active');
   teardownRemoteVideo();
