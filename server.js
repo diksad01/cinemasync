@@ -342,19 +342,6 @@ io.on('connection', (socket) => {
     io.to(knockerId).emit('knock_result', { accepted });
   });
 
-  // Heartbeat for drift correction
-  socket.on('heartbeat', ({ currentTime }) => {
-    if (!currentRoom || !rooms[currentRoom]) return;
-    if (rooms[currentRoom].isPlaying) {
-      // Calculate expected time accounting for elapsed time since last update
-      const elapsed = (Date.now() - rooms[currentRoom].lastUpdate) / 1000;
-      const expectedTime = rooms[currentRoom].currentTime + elapsed;
-      const drift = Math.abs(currentTime - expectedTime);
-      if (drift > 2) {
-        socket.emit('heartbeat_correction', { currentTime: expectedTime });
-      }
-    }
-  });
 
   socket.on('disconnect', () => {
     if (!currentRoom || !rooms[currentRoom]) return;

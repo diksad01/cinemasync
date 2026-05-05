@@ -671,21 +671,6 @@ function initSocket() {
     showKnockModal(name, color, id);
   });
 
-  socket.on('heartbeat_correction', ({ currentTime }) => {
-    const v = document.getElementById('video-player');
-    if (!v || v.style.display === 'none' || v.paused) return;
-    isSyncingFromRemote = true;
-    v.currentTime = currentTime;
-    isSyncingFromRemote = false;
-    showToast('Synced with partner', '');
-  });
-
-  // Heartbeat every 5 seconds
-  setInterval(() => {
-    const v = document.getElementById('video-player');
-    if (!socket || !v || v.style.display === 'none' || v.paused) return;
-    socket.emit('heartbeat', { currentTime: v.currentTime });
-  }, 5000);
 }
 
 // ══════════════════════════════════════════════
