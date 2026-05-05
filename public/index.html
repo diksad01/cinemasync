@@ -229,6 +229,23 @@
     .btn-deny:hover { border-color: rgba(255,80,80,0.4); color: #ff6060; }
     .knock-avatar { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 800; margin: 0 auto 16px; border: 2px solid rgba(255,255,255,0.15); }
 
+    /* WEBCAM STRIP */
+    #webcam-strip { display: none; gap: 8px; padding: 8px 12px; background: rgba(0,0,0,0.4); border-top: 1px solid var(--glass-border); justify-content: flex-start; align-items: flex-end; flex-wrap: nowrap; overflow-x: auto; }
+    #webcam-strip.show { display: flex; }
+    .face-tile { position: relative; width: 120px; height: 90px; border-radius: 12px; overflow: hidden; background: #0a0c14; border: 1.5px solid var(--glass-border); flex-shrink: 0; transition: var(--transition); }
+    .face-tile:hover { border-color: rgba(0,212,255,0.4); }
+    .face-tile video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
+    .face-tile .face-label { position: absolute; bottom: 4px; left: 6px; font-size: 0.65rem; font-family: 'Syne', sans-serif; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.8); background: rgba(0,0,0,0.45); padding: 1px 5px; border-radius: 6px; }
+    .face-tile .face-muted { position: absolute; top: 5px; right: 5px; font-size: 0.65rem; background: rgba(0,0,0,0.55); border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; }
+    .face-tile.no-cam { display: flex; align-items: center; justify-content: center; }
+    .face-tile.no-cam .avatar-init { font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 800; }
+    .cam-controls { display: flex; gap: 6px; align-items: center; margin-left: auto; flex-shrink: 0; }
+    .cam-btn { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); border-radius: 100px; color: var(--text); font-size: 0.72rem; font-family: 'Syne', sans-serif; padding: 5px 12px; cursor: pointer; transition: var(--transition); display: flex; align-items: center; gap: 5px; }
+    .cam-btn:hover { background: rgba(255,255,255,0.13); }
+    .cam-btn.active { border-color: rgba(0,212,255,0.4); color: var(--cyan); }
+    .cam-btn.danger { border-color: rgba(255,80,80,0.35); color: #ff6060; }
+    .cam-btn svg { flex-shrink: 0; }
+
     /* SHARE LINK BTN */
     .share-btn { background: var(--cyan-dim); border: 1px solid rgba(0,212,255,0.25); border-radius: 100px; color: var(--cyan); cursor: pointer; padding: 4px 12px; font-size: 0.72rem; font-family: 'Syne', sans-serif; font-weight: 600; transition: var(--transition); letter-spacing: 0.5px; }
     .share-btn:hover { background: rgba(0,212,255,0.2); }
@@ -314,8 +331,40 @@
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         Chat
       </button>
+      <button class="icon-btn" id="cam-toggle-btn" onclick="toggleCamStrip()">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7 16 12 23 17V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+        Cam
+      </button>
     </div>
   </header>
+
+  <!-- WEBCAM STRIP -->
+  <div id="webcam-strip">
+    <div class="face-tile" id="local-face-tile">
+      <video id="local-video" autoplay muted playsinline></video>
+      <div class="face-label" id="local-face-label">You</div>
+      <div class="face-muted" id="local-muted-icon" style="display:none">🔇</div>
+    </div>
+    <div class="face-tile no-cam" id="remote-face-tile" style="display:none">
+      <div class="avatar-init" id="remote-face-avatar" style="color:#00d4ff">?</div>
+      <div class="face-label" id="remote-face-label">Partner</div>
+      <div class="face-muted" id="remote-muted-icon" style="display:none">🔇</div>
+    </div>
+    <div class="cam-controls">
+      <button class="cam-btn active" id="btn-toggle-cam" onclick="toggleCam()">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7 16 12 23 17V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+        Cam
+      </button>
+      <button class="cam-btn active" id="btn-toggle-mic" onclick="toggleMic()">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        Mic
+      </button>
+      <button class="cam-btn danger" onclick="stopCam()">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        End
+      </button>
+    </div>
+  </div>
 
   <div class="main-area">
     <div class="video-section">
@@ -456,6 +505,13 @@ const USER_COLORS = [
   '#f0c060','#00d4ff','#ff6b9d','#7c6cf0','#4ade80',
   '#fb923c','#e879f9','#34d399','#f87171','#60a5fa'
 ];
+
+// WebRTC state
+let localStream = null;
+let peerConnection = null;
+let camOn = false;
+let micOn = false;
+const RTC_CONFIG = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] };
 
 // ══════════════════════════════════════════════
 //  LOBBY
@@ -671,6 +727,29 @@ function initSocket() {
     showKnockModal(name, color, id);
   });
 
+  // WebRTC signaling
+  socket.on('webrtc_offer', async ({ offer }) => {
+    await ensurePeerConnection(false);
+    await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+    socket.emit('webrtc_answer', { answer });
+  });
+
+  socket.on('webrtc_answer', async ({ answer }) => {
+    if (peerConnection) await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+  });
+
+  socket.on('webrtc_ice', async ({ candidate }) => {
+    if (peerConnection && candidate) {
+      try { await peerConnection.addIceCandidate(new RTCIceCandidate(candidate)); } catch {}
+    }
+  });
+
+  socket.on('webrtc_stop', () => {
+    teardownRemoteVideo();
+    showToast('Partner ended their camera', '');
+  });
 }
 
 // ══════════════════════════════════════════════
@@ -735,6 +814,136 @@ function showExtractError(msg, hint) {
   el.onclick = () => el.remove();
   container.appendChild(el);
   setTimeout(() => el && el.remove(), 9000);
+}
+
+// ══════════════════════════════════════════════
+//  WEBRTC / CAM
+// ══════════════════════════════════════════════
+async function toggleCamStrip() {
+  const strip = document.getElementById('webcam-strip');
+  const btn = document.getElementById('cam-toggle-btn');
+  if (strip.classList.contains('show')) {
+    stopCam();
+    strip.classList.remove('show');
+    btn.classList.remove('active');
+  } else {
+    strip.classList.add('show');
+    btn.classList.add('active');
+    await startCam();
+  }
+}
+
+async function startCam() {
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    camOn = true; micOn = true;
+    const localVid = document.getElementById('local-video');
+    localVid.srcObject = localStream;
+    document.getElementById('local-face-label').textContent = myName || 'You';
+    document.getElementById('btn-toggle-cam').classList.add('active');
+    document.getElementById('btn-toggle-mic').classList.add('active');
+
+    // If partner already in room, initiate call
+    if (socket && roomUsers.length > 1) {
+      await ensurePeerConnection(true);
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+      socket.emit('webrtc_offer', { offer });
+    }
+  } catch (err) {
+    showToast('Camera/mic access denied — check browser permissions', 'gold');
+    document.getElementById('webcam-strip').classList.remove('show');
+    document.getElementById('cam-toggle-btn').classList.remove('active');
+  }
+}
+
+async function ensurePeerConnection(isOfferer) {
+  if (peerConnection) { peerConnection.close(); }
+  peerConnection = new RTCPeerConnection(RTC_CONFIG);
+
+  // Add local tracks
+  if (localStream) {
+    localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
+  }
+
+  // ICE candidates → relay via socket
+  peerConnection.onicecandidate = ({ candidate }) => {
+    if (candidate && socket) socket.emit('webrtc_ice', { candidate });
+  };
+
+  // Remote stream → show in tile
+  peerConnection.ontrack = ({ streams }) => {
+    const remoteTile = document.getElementById('remote-face-tile');
+    remoteTile.style.display = 'block';
+    remoteTile.classList.remove('no-cam');
+
+    let remoteVid = remoteTile.querySelector('video');
+    if (!remoteVid) {
+      remoteVid = document.createElement('video');
+      remoteVid.autoplay = true;
+      remoteVid.playsinline = true;
+      remoteVid.style.cssText = 'width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:block';
+      remoteTile.insertBefore(remoteVid, remoteTile.firstChild);
+    }
+    remoteVid.srcObject = streams[0];
+
+    // Update label with partner name
+    const partner = roomUsers.find(u => u.id !== socket.id);
+    if (partner) {
+      document.getElementById('remote-face-label').textContent = partner.name;
+      document.getElementById('remote-face-avatar').textContent = partner.name.charAt(0).toUpperCase();
+      const c = partner.color || '#00d4ff';
+      document.getElementById('remote-face-avatar').style.color = c;
+    }
+  };
+
+  peerConnection.onconnectionstatechange = () => {
+    if (peerConnection.connectionState === 'failed' || peerConnection.connectionState === 'disconnected') {
+      teardownRemoteVideo();
+    }
+  };
+}
+
+function toggleCam() {
+  if (!localStream) return;
+  const track = localStream.getVideoTracks()[0];
+  if (!track) return;
+  camOn = !camOn;
+  track.enabled = camOn;
+  document.getElementById('btn-toggle-cam').classList.toggle('active', camOn);
+  document.getElementById('local-video').style.opacity = camOn ? '1' : '0.15';
+}
+
+function toggleMic() {
+  if (!localStream) return;
+  const track = localStream.getAudioTracks()[0];
+  if (!track) return;
+  micOn = !micOn;
+  track.enabled = micOn;
+  document.getElementById('btn-toggle-mic').classList.toggle('active', micOn);
+  document.getElementById('local-muted-icon').style.display = micOn ? 'none' : 'flex';
+}
+
+function stopCam() {
+  if (localStream) {
+    localStream.getTracks().forEach(t => t.stop());
+    localStream = null;
+  }
+  if (peerConnection) { peerConnection.close(); peerConnection = null; }
+  document.getElementById('local-video').srcObject = null;
+  camOn = false; micOn = false;
+  document.getElementById('btn-toggle-cam').classList.remove('active');
+  document.getElementById('btn-toggle-mic').classList.remove('active');
+  teardownRemoteVideo();
+  if (socket) socket.emit('webrtc_stop');
+}
+
+function teardownRemoteVideo() {
+  const remoteTile = document.getElementById('remote-face-tile');
+  const remoteVid = remoteTile.querySelector('video');
+  if (remoteVid) { remoteVid.srcObject = null; remoteVid.remove(); }
+  remoteTile.style.display = 'none';
+  remoteTile.classList.add('no-cam');
 }
 
 function copyRoomCode() {

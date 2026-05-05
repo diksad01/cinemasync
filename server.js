@@ -342,6 +342,27 @@ io.on('connection', (socket) => {
     io.to(knockerId).emit('knock_result', { accepted });
   });
 
+  // WebRTC signaling relay
+  socket.on('webrtc_offer', ({ offer }) => {
+    if (!currentRoom) return;
+    socket.to(currentRoom).emit('webrtc_offer', { offer, from: socket.id });
+  });
+
+  socket.on('webrtc_answer', ({ answer }) => {
+    if (!currentRoom) return;
+    socket.to(currentRoom).emit('webrtc_answer', { answer, from: socket.id });
+  });
+
+  socket.on('webrtc_ice', ({ candidate }) => {
+    if (!currentRoom) return;
+    socket.to(currentRoom).emit('webrtc_ice', { candidate, from: socket.id });
+  });
+
+  socket.on('webrtc_stop', () => {
+    if (!currentRoom) return;
+    socket.to(currentRoom).emit('webrtc_stop', { from: socket.id });
+  });
+
 
   socket.on('disconnect', () => {
     if (!currentRoom || !rooms[currentRoom]) return;
