@@ -993,6 +993,13 @@ function isDirectVideoUrl(url) {
   return /\.(mp4|webm|mkv|ogv|ogg|m3u8|mov|avi|flv)(\?|#|$)/i.test(url) || url.includes('archive.org/download');
 }
 
+function proxyUrl(url) {
+  // Proxy direct video URLs to avoid CORS issues — skip localhost and already-proxied URLs
+  if (!url) return url;
+  if (url.startsWith('/api/proxy') || url.startsWith('blob:') || url.includes('localhost') || url.includes('127.0.0.1')) return url;
+  return `/api/proxy?url=${encodeURIComponent(url)}`;
+}
+
 function loadVideo(url, type, broadcast) {
   const vid = document.getElementById('video-player');
   const iframe = document.getElementById('iframe-player');
@@ -1014,7 +1021,7 @@ function loadVideo(url, type, broadcast) {
     iframe.src = '';
     controls.style.pointerEvents = '';
     vid.style.display = 'block';
-    vid.src = url;
+    vid.src = proxyUrl(url);
     vid.load();
   }
 

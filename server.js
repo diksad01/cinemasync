@@ -26,6 +26,38 @@ function generateRoomCode() {
   return code;
 }
 
+// API: Video proxy — streams remote video through server to bypass CORS
+app.get('/api/proxy', async (req, res) => {
+  const { url } = req.query;
+  if (!url) return res.status(400).send('url param required');
+
+  try {
+    const range = req.headers.range;
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'Referer': new URL(url).origin
+    };
+    if (range) headers['Range'] = range;
+
+    const upstream = await axios.get(url, {
+      responseType: 'stream',
+      timeout: 30000,
+      headers
+    });
+
+    // Forward relevant headers
+    const forward = ['content-type', 'content-length', 'content-range', 'accept-ranges'];
+    forward.forEach(h => { if (upstream.headers[h]) res.setHeader(h, upstream.headers[h]); });
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.status(upstream.status);
+    upstream.data.pipe(res);
+
+    upstream.data.on('error', () => res.end());
+  } catch (err) {
+    res.status(500).send('Proxy error: ' + err.message);
+  }
+});
+
 // Helper: resolve a potentially relative URL against a base
 function resolveUrl(src, base) {
   if (!src) return null;
