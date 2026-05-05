@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CinemaSync — Watch Together</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #06080f; --bg2: #0c0f1a; --bg3: #111520;
+      --gold: #f0c060; --gold-dim: rgba(240,192,96,0.15);
+      --cyan: #00d4ff; --cyan-dim: rgba(0,212,255,0.12);
+      --text: #e8eaf0; --text-dim: #7a8199;
+      --glass: rgba(12,15,26,0.72); --glass-border: rgba(240,192,96,0.12);
+      --radius: 12px; --transition: 0.22s cubic-bezier(0.4,0,0.2,1);
+    }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; overflow: hidden; }
+    body::before {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9999; opacity: 0.028;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      background-size: 180px 180px;
+    }
+
+    /* LOBBY */
+    #lobby { display: flex; align-items: center; justify-content: center; height: 100vh; position: relative; overflow: hidden; }
+    #lobby::before {
+      content: ''; position: absolute; inset: -40%;
+      background: radial-gradient(ellipse 60% 50% at 50% 40%, rgba(0,212,255,0.06) 0%, transparent 70%), radial-gradient(ellipse 40% 30% at 30% 70%, rgba(240,192,96,0.04) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .lobby-card {
+      position: relative; background: var(--bg2); border-radius: 24px; padding: 48px 44px 44px;
+      width: min(480px, 92vw); border: 1px solid rgba(240,192,96,0.18);
+      box-shadow: 0 0 60px rgba(0,0,0,0.6), 0 0 120px rgba(0,212,255,0.04);
+    }
+    .lobby-card::before {
+      content: ''; position: absolute; inset: -1px; border-radius: 25px;
+      background: linear-gradient(135deg, rgba(240,192,96,0.3), transparent 40%, rgba(0,212,255,0.2) 100%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude; padding: 1px; pointer-events: none;
+    }
+    .logo { text-align: center; margin-bottom: 36px; }
+    .logo-title {
+      font-family: 'Syne', sans-serif; font-size: 2.2rem; font-weight: 800; letter-spacing: -0.5px;
+      background: linear-gradient(135deg, var(--gold) 0%, #fff8e8 50%, var(--cyan) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      animation: logoPulse 3s ease-in-out infinite;
+    }
+    @keyframes logoPulse { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.15) drop-shadow(0 0 16px rgba(240,192,96,0.4)); } }
+    .logo-sub { font-size: 0.8rem; color: var(--text-dim); letter-spacing: 3px; text-transform: uppercase; margin-top: 4px; }
+    .lobby-tabs { display: flex; gap: 4px; background: var(--bg3); border-radius: 100px; padding: 4px; margin-bottom: 28px; }
+    .lobby-tab { flex: 1; background: none; border: none; color: var(--text-dim); font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500; padding: 8px 16px; border-radius: 100px; cursor: pointer; transition: var(--transition); }
+    .lobby-tab.active { background: var(--gold-dim); color: var(--gold); border: 1px solid rgba(240,192,96,0.25); }
+    .lobby-form { display: flex; flex-direction: column; gap: 16px; }
+    .input-group { display: flex; flex-direction: column; gap: 6px; }
+    .input-label { font-size: 0.75rem; font-weight: 500; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; font-family: 'Syne', sans-serif; }
+    .lobby-input { background: var(--bg3); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 1rem; padding: 13px 16px; outline: none; transition: var(--transition); width: 100%; }
+    .lobby-input:focus { border-color: rgba(240,192,96,0.4); box-shadow: 0 0 0 3px rgba(240,192,96,0.08); }
+    .lobby-input.code-input { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 700; letter-spacing: 6px; text-align: center; text-transform: uppercase; }
+    .btn-primary {
+      background: linear-gradient(135deg, rgba(240,192,96,0.9), rgba(240,160,60,0.9)); border: none; border-radius: 100px;
+      color: #0c0f1a; font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700; letter-spacing: 1px;
+      padding: 14px 32px; cursor: pointer; transition: var(--transition); text-transform: uppercase; width: 100%; margin-top: 4px; position: relative; overflow: hidden;
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 32px rgba(240,192,96,0.35); }
+    .btn-primary:active { transform: translateY(0); }
+    .room-code-display { background: var(--bg3); border: 1px solid rgba(240,192,96,0.2); border-radius: var(--radius); padding: 16px; text-align: center; }
+    .room-code-display .code { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; letter-spacing: 8px; color: var(--gold); }
+    .room-code-display .hint { font-size: 0.75rem; color: var(--text-dim); margin-top: 4px; }
+
+    /* APP LAYOUT */
+    #app { display: none; height: 100vh; overflow: hidden; position: relative; flex-direction: column; }
+    #app.active { display: flex; }
+    .app-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; background: rgba(6,8,15,0.92); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.05); z-index: 100; flex-shrink: 0; }
+    .header-logo { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 800; background: linear-gradient(135deg, var(--gold), var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .header-room { display: flex; align-items: center; gap: 12px; }
+    .room-badge { background: var(--gold-dim); border: 1px solid rgba(240,192,96,0.25); border-radius: 100px; padding: 4px 14px; font-family: 'Syne', sans-serif; font-size: 0.8rem; font-weight: 700; letter-spacing: 2px; color: var(--gold); cursor: pointer; user-select: none; transition: var(--transition); }
+    .room-badge:hover { background: rgba(240,192,96,0.22); }
+    .viewer-count { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--text-dim); }
+    .viewer-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 8px var(--cyan); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(0.85); } }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .icon-btn { background: none; border: 1px solid rgba(255,255,255,0.08); border-radius: 100px; color: var(--text-dim); cursor: pointer; padding: 7px 14px; font-size: 0.8rem; font-family: 'DM Sans', sans-serif; transition: var(--transition); display: flex; align-items: center; gap: 6px; }
+    .icon-btn:hover { border-color: rgba(240,192,96,0.3); color: var(--gold); }
+    .icon-btn.active { background: var(--gold-dim); border-color: rgba(240,192,96,0.3); color: var(--gold); }
+
+    /* MAIN AREA */
+    .main-area { display: flex; flex: 1; overflow: hidden; position: relative; }
+
+    /* VIDEO SECTION */
+    .video-section { flex: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; background: #000; }
+    .video-wrapper { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; background: #000; overflow: hidden; }
+    .video-wrapper::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 100% 100% at 50% 50%, transparent 55%, rgba(0,0,0,0.65) 100%); z-index: 2; }
+    #video-player { width: 100%; height: 100%; object-fit: contain; display: none; position: relative; z-index: 1; }
+    #iframe-player { width: 100%; height: 100%; border: none; display: none; position: relative; z-index: 1; }
+    #waiting-overlay { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10; background: rgba(6,8,15,0.88); gap: 16px; }
+    #waiting-overlay.show { display: flex; }
+    .waiting-icon { width: 64px; height: 64px; border-radius: 50%; border: 2px solid rgba(240,192,96,0.3); border-top-color: var(--gold); animation: spin 1.5s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .waiting-text { font-family: 'Syne', sans-serif; font-size: 1.1rem; color: var(--text-dim); }
+    #no-video { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 5; }
+    .no-video-icon { font-size: 3.5rem; opacity: 0.25; }
+    .no-video-text { font-family: 'Syne', sans-serif; font-size: 1rem; color: var(--text-dim); }
+    #partner-avatar { position: absolute; top: 16px; left: 16px; z-index: 20; display: none; align-items: center; gap: 8px; }
+    #partner-avatar.show { display: flex; }
+    .avatar-bubble { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--cyan-dim), var(--gold-dim)); border: 1.5px solid rgba(0,212,255,0.4); display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-size: 0.75rem; font-weight: 700; color: var(--cyan); }
+    .avatar-name { font-size: 0.75rem; color: rgba(255,255,255,0.7); background: rgba(0,0,0,0.5); padding: 3px 8px; border-radius: 100px; }
+    #buffer-indicator { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 30; display: none; flex-direction: column; align-items: center; gap: 8px; }
+    #buffer-indicator.show { display: flex; }
+    .buffer-spinner { width: 48px; height: 48px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.1); border-top-color: var(--cyan); animation: spin 0.8s linear infinite; }
+    .buffer-text { font-size: 0.75rem; color: var(--text-dim); }
+    #countdown-overlay { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; z-index: 50; background: rgba(0,0,0,0.6); }
+    #countdown-overlay.show { display: flex; }
+    .countdown-number { font-family: 'Syne', sans-serif; font-size: clamp(6rem, 18vw, 12rem); font-weight: 800; color: var(--gold); text-shadow: 0 0 60px rgba(240,192,96,0.6); animation: countPop 0.9s ease-out; }
+    @keyframes countPop { 0% { transform: scale(1.6); opacity: 0; } 40% { opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+
+    /* VIDEO CONTROLS */
+    #video-controls { position: absolute; bottom: 0; left: 0; right: 0; z-index: 40; padding: 32px 20px 16px; background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%); opacity: 0; transform: translateY(8px); transition: opacity 0.3s, transform 0.3s; }
+    .video-section:hover #video-controls, #video-controls:focus-within { opacity: 1; transform: translateY(0); }
+    .progress-bar-container { width: 100%; height: 4px; background: rgba(255,255,255,0.15); border-radius: 100px; cursor: pointer; margin-bottom: 12px; position: relative; transition: height 0.2s; }
+    .progress-bar-container:hover { height: 6px; }
+    #progress-fill { height: 100%; background: linear-gradient(90deg, var(--gold), #ffb347); border-radius: 100px; position: relative; width: 0%; pointer-events: none; }
+    #progress-fill::after { content: ''; position: absolute; right: -6px; top: 50%; transform: translateY(-50%); width: 12px; height: 12px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 10px var(--gold); opacity: 0; transition: opacity 0.2s; }
+    .progress-bar-container:hover #progress-fill::after { opacity: 1; }
+    .controls-row { display: flex; align-items: center; gap: 12px; }
+    .ctrl-btn { background: none; border: none; color: rgba(255,255,255,0.85); cursor: pointer; padding: 6px; border-radius: 8px; transition: var(--transition); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .ctrl-btn:hover { color: var(--gold); }
+    .ctrl-btn svg { width: 22px; height: 22px; fill: currentColor; }
+    .ctrl-btn.play-btn svg { width: 28px; height: 28px; }
+    .time-display { font-size: 0.78rem; color: rgba(255,255,255,0.7); font-variant-numeric: tabular-nums; min-width: 95px; }
+    .volume-container { display: flex; align-items: center; gap: 8px; }
+    #volume-slider { -webkit-appearance: none; appearance: none; width: 72px; height: 3px; border-radius: 100px; background: rgba(255,255,255,0.2); outline: none; cursor: pointer; }
+    #volume-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--gold); cursor: pointer; }
+    .ctrl-spacer { flex: 1; }
+
+    /* SOURCE BAR */
+    .source-bar { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: rgba(6,8,15,0.9); border-top: 1px solid rgba(255,255,255,0.05); flex-shrink: 0; }
+    .source-tabs { display: flex; gap: 2px; background: var(--bg3); border-radius: 100px; padding: 2px; flex-shrink: 0; }
+    .source-tab { background: none; border: none; color: var(--text-dim); font-family: 'DM Sans', sans-serif; font-size: 0.72rem; padding: 5px 10px; border-radius: 100px; cursor: pointer; transition: var(--transition); white-space: nowrap; }
+    .source-tab.active { background: var(--gold-dim); color: var(--gold); }
+    .source-input-wrap { flex: 1; position: relative; }
+    .source-input { background: var(--bg3); border: 1px solid rgba(255,255,255,0.07); border-radius: 100px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.82rem; padding: 7px 50px 7px 14px; outline: none; width: 100%; transition: var(--transition); }
+    .source-input:focus { border-color: rgba(240,192,96,0.3); }
+    .source-submit { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); background: var(--gold-dim); border: 1px solid rgba(240,192,96,0.25); border-radius: 100px; color: var(--gold); cursor: pointer; padding: 4px 10px; font-size: 0.72rem; font-family: 'Syne', sans-serif; font-weight: 600; transition: var(--transition); }
+    .source-submit:hover { background: rgba(240,192,96,0.25); }
+    .file-btn { background: none; border: 1px solid rgba(255,255,255,0.1); border-radius: 100px; color: var(--text-dim); cursor: pointer; padding: 6px 14px; font-size: 0.78rem; font-family: 'DM Sans', sans-serif; transition: var(--transition); white-space: nowrap; flex-shrink: 0; }
+    .file-btn:hover { border-color: rgba(240,192,96,0.3); color: var(--gold); }
+
+    /* SEARCH PANEL */
+    #search-panel { display: none; flex-direction: column; padding: 14px 16px; background: var(--bg2); border-top: 1px solid rgba(255,255,255,0.05); max-height: 260px; overflow-y: auto; flex-shrink: 0; }
+    #search-panel.open { display: flex; }
+    .search-top { display: flex; gap: 8px; }
+    .search-field { flex: 1; background: var(--bg3); border: 1px solid rgba(255,255,255,0.07); border-radius: 100px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.82rem; padding: 7px 14px; outline: none; transition: var(--transition); }
+    .search-field:focus { border-color: rgba(240,192,96,0.3); }
+    .search-btn { background: var(--gold-dim); border: 1px solid rgba(240,192,96,0.25); border-radius: 100px; color: var(--gold); cursor: pointer; padding: 7px 16px; font-size: 0.78rem; font-family: 'Syne', sans-serif; font-weight: 600; transition: var(--transition); white-space: nowrap; }
+    .search-btn:hover { background: rgba(240,192,96,0.25); }
+    .search-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin-top: 12px; }
+    .search-item { cursor: pointer; border-radius: var(--radius); overflow: hidden; border: 1px solid rgba(255,255,255,0.06); transition: var(--transition); background: var(--bg3); }
+    .search-item:hover { border-color: rgba(240,192,96,0.3); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+    .search-thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: var(--bg3); }
+    .search-title { padding: 6px 8px; font-size: 0.68rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .search-loading { text-align: center; color: var(--text-dim); font-size: 0.8rem; padding: 20px; }
+
+    /* CHAT PANEL */
+    #chat-panel { width: 300px; flex-shrink: 0; display: flex; flex-direction: column; background: var(--glass); backdrop-filter: blur(20px); border-left: 1px solid var(--glass-border); transition: width 0.3s ease; overflow: hidden; }
+    #chat-panel.hidden { width: 0; border-left: none; }
+    .chat-header { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); font-family: 'Syne', sans-serif; font-size: 0.8rem; font-weight: 600; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .users-list { display: flex; gap: 6px; flex-wrap: wrap; }
+    .user-pill { display: flex; align-items: center; gap: 5px; background: var(--bg3); border-radius: 100px; padding: 3px 8px 3px 4px; font-size: 0.7rem; color: var(--text-dim); }
+    .user-pill .dot { width: 20px; height: 20px; border-radius: 50%; background: linear-gradient(135deg, var(--cyan-dim), rgba(240,192,96,0.2)); border: 1px solid rgba(0,212,255,0.3); display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 700; color: var(--cyan); font-family: 'Syne', sans-serif; }
+    #chat-messages { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; scrollbar-width: thin; }
+    .chat-message { display: flex; flex-direction: column; gap: 2px; animation: msgSlide 0.2s ease-out; }
+    @keyframes msgSlide { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .chat-message.own .msg-bubble { background: rgba(240,192,96,0.12); border-color: rgba(240,192,96,0.2); }
+    .msg-meta { display: flex; align-items: baseline; gap: 6px; }
+    .msg-name { font-size: 0.7rem; font-weight: 600; color: var(--gold); font-family: 'Syne', sans-serif; }
+    .msg-time { font-size: 0.62rem; color: var(--text-dim); }
+    .msg-bubble { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07); border-radius: 4px 12px 12px 12px; padding: 7px 11px; font-size: 0.82rem; line-height: 1.45; color: var(--text); word-break: break-word; }
+    .chat-message.system .msg-bubble { background: transparent; border: none; color: var(--text-dim); font-size: 0.73rem; font-style: italic; padding: 2px 0; }
+    .typing-indicator { display: none; align-items: center; gap: 6px; padding: 6px 14px; font-size: 0.72rem; color: var(--text-dim); font-style: italic; flex-shrink: 0; }
+    .typing-indicator.show { display: flex; }
+    .typing-dots { display: flex; gap: 3px; }
+    .typing-dots span { width: 4px; height: 4px; background: var(--text-dim); border-radius: 50%; animation: typingBounce 1.2s infinite; }
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typingBounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }
+    .reaction-bar { padding: 8px 14px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; gap: 4px; flex-shrink: 0; }
+    .emoji-btn { background: none; border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; cursor: pointer; font-size: 1.1rem; padding: 4px 7px; transition: var(--transition); line-height: 1; }
+    .emoji-btn:hover { border-color: rgba(240,192,96,0.3); transform: scale(1.2); background: var(--gold-dim); }
+    .chat-input-area { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid rgba(255,255,255,0.05); flex-shrink: 0; }
+    .chat-input { flex: 1; background: var(--bg3); border: 1px solid rgba(255,255,255,0.07); border-radius: 100px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.82rem; padding: 8px 14px; outline: none; transition: var(--transition); }
+    .chat-input:focus { border-color: rgba(240,192,96,0.3); }
+    .chat-send { background: var(--gold-dim); border: 1px solid rgba(240,192,96,0.25); border-radius: 100px; color: var(--gold); cursor: pointer; padding: 8px 14px; font-size: 0.78rem; font-family: 'Syne', sans-serif; font-weight: 600; transition: var(--transition); flex-shrink: 0; }
+    .chat-send:hover { background: rgba(240,192,96,0.22); }
+
+    /* FLOATING REACTIONS */
+    #reaction-container { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); pointer-events: none; z-index: 200; width: 200px; display: flex; justify-content: center; }
+    .floating-reaction { position: absolute; font-size: 1.8rem; animation: floatUp 2.5s ease-out forwards; pointer-events: none; }
+    @keyframes floatUp { 0% { opacity: 1; transform: translateY(0) scale(1); } 70% { opacity: 1; } 100% { opacity: 0; transform: translateY(-120px) scale(0.8); } }
+
+    /* TOAST */
+    #toast-container { position: fixed; top: 72px; right: 20px; z-index: 500; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+    .toast { background: var(--bg2); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius); padding: 10px 16px; font-size: 0.8rem; color: var(--text); box-shadow: 0 8px 32px rgba(0,0,0,0.4); animation: toastIn 0.3s ease-out, toastOut 0.3s ease-in 2.7s forwards; }
+    .toast.gold { border-color: rgba(240,192,96,0.3); }
+    .toast.cyan { border-color: rgba(0,212,255,0.3); }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateX(20px); } }
+
+    /* MOBILE */
+    @media (max-width: 768px) {
+      #chat-panel { position: fixed; bottom: 0; left: 0; right: 0; width: 100% !important; height: 70vh; z-index: 300; border-left: none; border-top: 1px solid var(--glass-border); border-radius: 20px 20px 0 0; transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.4,0,0.2,1); }
+      #chat-panel.mobile-open { transform: translateY(0) !important; }
+      #chat-panel.hidden { width: 100% !important; transform: translateY(100%) !important; }
+      .source-tabs { display: none; }
+      .app-header { padding: 8px 14px; }
+    }
+    * { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.08) transparent; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- LOBBY -->
+<div id="lobby">
+  <div class="lobby-card">
+    <div class="logo">
+      <div class="logo-title">CinemaSync</div>
+      <div class="logo-sub">Private Watch Parties</div>
+    </div>
+    <div class="lobby-tabs">
+      <button class="lobby-tab active" onclick="switchLobbyTab('create')">Create Room</button>
+      <button class="lobby-tab" onclick="switchLobbyTab('join')">Join Room</button>
+    </div>
+    <div id="tab-create" class="lobby-form">
+      <div class="input-group">
+        <label class="input-label">Your Name</label>
+        <input class="lobby-input" id="create-name" type="text" placeholder="Enter your name" maxlength="24" />
+      </div>
+      <div class="room-code-display">
+        <div class="code" id="generated-code">——</div>
+        <div class="hint">Your room code — share with your partner</div>
+      </div>
+      <button class="btn-primary" onclick="createRoom()">Generate Room &amp; Enter</button>
+    </div>
+    <div id="tab-join" class="lobby-form" style="display:none">
+      <div class="input-group">
+        <label class="input-label">Your Name</label>
+        <input class="lobby-input" id="join-name" type="text" placeholder="Enter your name" maxlength="24" />
+      </div>
+      <div class="input-group">
+        <label class="input-label">Room Code</label>
+        <input class="lobby-input code-input" id="join-code" type="text" placeholder="XXXXXX" maxlength="6" />
+      </div>
+      <button class="btn-primary" onclick="joinRoom()">Join Watch Party</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header class="app-header">
+    <div class="header-logo">CinemaSync</div>
+    <div class="header-room">
+      <div class="viewer-count">
+        <div class="viewer-dot"></div>
+        <span id="viewer-count-text">1 watching</span>
+      </div>
+      <div class="room-badge" id="room-badge" onclick="copyRoomCode()" title="Click to copy room code">——</div>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="search-toggle-btn" onclick="toggleSearch()">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Search
+      </button>
+      <button class="icon-btn active" id="chat-toggle-btn" onclick="toggleChat()">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Chat
+      </button>
+    </div>
+  </header>
+
+  <div class="main-area">
+    <div class="video-section">
+      <div class="video-wrapper" id="video-wrapper">
+        <video id="video-player" controls></video>
+        <iframe id="iframe-player" allowfullscreen allow="autoplay; fullscreen"></iframe>
+
+        <div id="no-video">
+          <div class="no-video-icon">🎬</div>
+          <div class="no-video-text">Paste a video URL or search for a movie below</div>
+        </div>
+
+        <div id="waiting-overlay">
+          <div class="waiting-icon"></div>
+          <div class="waiting-text">Waiting for your partner to join…</div>
+        </div>
+
+        <div id="partner-avatar">
+          <div class="avatar-bubble" id="partner-initials">??</div>
+          <div class="avatar-name" id="partner-name-display">Partner</div>
+        </div>
+
+        <div id="buffer-indicator">
+          <div class="buffer-spinner"></div>
+          <div class="buffer-text">Partner is buffering…</div>
+        </div>
+
+        <div id="countdown-overlay">
+          <div class="countdown-number" id="countdown-number">3</div>
+        </div>
+      </div>
+
+      <!-- Custom controls (for direct video only) -->
+      <div id="video-controls">
+        <div class="progress-bar-container" id="progress-bar" onclick="seekVideo(event)">
+          <div id="progress-fill"></div>
+        </div>
+        <div class="controls-row">
+          <button class="ctrl-btn play-btn" id="play-btn" onclick="togglePlayPause()">
+            <svg id="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <div class="volume-container">
+            <button class="ctrl-btn" onclick="toggleMute()">
+              <svg id="mute-icon" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+            </button>
+            <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="1" oninput="setVolume(this.value)" />
+          </div>
+          <div class="time-display" id="time-display">0:00 / 0:00</div>
+          <div class="ctrl-spacer"></div>
+          <button class="ctrl-btn" onclick="toggleFullscreen()" title="Fullscreen">
+            <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHAT PANEL -->
+    <div id="chat-panel">
+      <div class="chat-header">
+        <span>Live Chat</span>
+        <div class="users-list" id="users-list"></div>
+      </div>
+      <div id="chat-messages"></div>
+      <div class="typing-indicator" id="typing-indicator">
+        <div class="typing-dots"><span></span><span></span><span></span></div>
+        <span id="typing-name">Partner</span> is typing…
+      </div>
+      <div class="reaction-bar">
+        <button class="emoji-btn" onclick="sendReaction('❤️')">❤️</button>
+        <button class="emoji-btn" onclick="sendReaction('😂')">😂</button>
+        <button class="emoji-btn" onclick="sendReaction('😱')">😱</button>
+        <button class="emoji-btn" onclick="sendReaction('👏')">👏</button>
+        <button class="emoji-btn" onclick="sendReaction('🔥')">🔥</button>
+        <button class="emoji-btn" onclick="sendReaction('💀')">💀</button>
+        <button class="emoji-btn" onclick="sendReaction('🥹')">🥹</button>
+      </div>
+      <div class="chat-input-area">
+        <input class="chat-input" id="chat-input" type="text" placeholder="Say something…" maxlength="300"
+          onkeydown="handleChatKey(event)" oninput="handleTyping()" />
+        <button class="chat-send" onclick="sendChat()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SOURCE BAR -->
+  <div class="source-bar">
+    <div class="source-tabs">
+      <button class="source-tab active" onclick="setSourceTab('url', this)">URL</button>
+      <button class="source-tab" onclick="setSourceTab('youtube', this)">YouTube</button>
+      <button class="source-tab" onclick="setSourceTab('vimeo', this)">Vimeo</button>
+      <button class="source-tab" onclick="setSourceTab('dailymotion', this)">Dailymotion</button>
+    </div>
+    <div class="source-input-wrap">
+      <input class="source-input" id="source-input" type="text" placeholder="Paste video URL here…"
+        onkeydown="if(event.key==='Enter') loadSourceUrl()" />
+      <button class="source-submit" onclick="loadSourceUrl()">Load</button>
+    </div>
+    <button class="file-btn" onclick="document.getElementById('file-input').click()">📁 Local File</button>
+    <input type="file" id="file-input" accept="video/*" style="display:none" onchange="loadLocalFile(event)" />
+  </div>
+
+  <!-- SEARCH PANEL -->
+  <div id="search-panel">
+    <div class="search-top">
+      <input class="search-field" id="search-input" type="text" placeholder="Search Archive.org movies…"
+        onkeydown="if(event.key==='Enter') doSearch()" />
+      <button class="search-btn" onclick="doSearch()">Search</button>
+    </div>
+    <div id="search-results" class="search-grid"></div>
+  </div>
+</div>
+
+<!-- FLOATING REACTIONS CONTAINER -->
+<div id="reaction-container"></div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+let socket = null;
+let myName = '';
+let myRoom = '';
+let isSyncingFromRemote = false;
+let typingTimer = null;
+let isTyping = false;
+let currentSourceTab = 'url';
+let chatVisible = true;
+let searchVisible = false;
+let roomUsers = [];
+let isMobile = () => window.innerWidth <= 768;
+
+// ══════════════════════════════════════════════
+//  LOBBY
+// ══════════════════════════════════════════════
+function switchLobbyTab(tab) {
+  document.querySelectorAll('.lobby-tab').forEach((b, i) => {
+    b.classList.toggle('active', (i === 0 && tab === 'create') || (i === 1 && tab === 'join'));
+  });
+  document.getElementById('tab-create').style.display = tab === 'create' ? 'flex' : 'none';
+  document.getElementById('tab-join').style.display = tab === 'join' ? 'flex' : 'none';
+  if (tab === 'create') generateCode();
+}
+
+function generateCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  document.getElementById('generated-code').textContent = code;
+  return code;
+}
+
+// Generate on load
+window.addEventListener('DOMContentLoaded', () => {
+  generateCode();
+  document.getElementById('create-name').addEventListener('keydown', e => { if (e.key === 'Enter') createRoom(); });
+  document.getElementById('join-name').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('join-code').focus(); });
+  document.getElementById('join-code').addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom(); });
+});
+
+function createRoom() {
+  const name = document.getElementById('create-name').value.trim();
+  if (!name) { showToast('Enter your name first', 'gold'); return; }
+  const code = document.getElementById('generated-code').textContent;
+  enterApp(name, code);
+}
+
+function joinRoom() {
+  const name = document.getElementById('join-name').value.trim();
+  const code = document.getElementById('join-code').value.trim().toUpperCase();
+  if (!name) { showToast('Enter your name first', 'gold'); return; }
+  if (code.length !== 6) { showToast('Enter a valid 6-character room code', 'gold'); return; }
+  enterApp(name, code);
+}
+
+function enterApp(name, code) {
+  myName = name;
+  myRoom = code;
+
+  document.getElementById('lobby').style.display = 'none';
+  document.getElementById('app').classList.add('active');
+  document.getElementById('room-badge').textContent = code;
+
+  initSocket();
+}
+
+// ══════════════════════════════════════════════
+//  SOCKET.IO
+// ══════════════════════════════════════════════
+function initSocket() {
+  socket = io();
+
+  socket.on('connect', () => {
+    socket.emit('join', { roomCode: myRoom, userName: myName });
+  });
+
+  socket.on('room_state', ({ videoUrl, videoType, currentTime, isPlaying, users }) => {
+    roomUsers = users;
+    updateUsersUI();
+    if (videoUrl) {
+      loadVideo(videoUrl, videoType, false);
+      const vid = document.getElementById('video-player');
+      if (vid && !vid.paused) {
+        isSyncingFromRemote = true;
+        vid.currentTime = currentTime;
+        if (isPlaying) vid.play().catch(() => {});
+        isSyncingFromRemote = false;
+      }
+    }
+    updateWaitingOverlay();
+  });
+
+  socket.on('room_users', (users) => {
+    roomUsers = users;
+    updateUsersUI();
+    updateWaitingOverlay();
+    updatePartnerAvatar();
+  });
+
+  socket.on('user_joined', ({ name }) => {
+    addSystemMessage(`${name} joined the room`);
+    showToast(`${name} joined`, 'cyan');
+  });
+
+  socket.on('user_left', ({ name }) => {
+    addSystemMessage(`${name} left the room`);
+    showToast(`${name} left`, 'gold');
+  });
+
+  socket.on('chat_msg', ({ message, userName, timestamp, id }) => {
+    addChatMessage(userName, message, timestamp, id === socket.id);
+  });
+
+  socket.on('sync_play', ({ currentTime }) => {
+    const vid = document.getElementById('video-player');
+    if (!vid || vid.style.display === 'none') return;
+    isSyncingFromRemote = true;
+    vid.currentTime = currentTime;
+    vid.play().catch(() => {});
+    isSyncingFromRemote = false;
+  });
+
+  socket.on('sync_pause', ({ currentTime }) => {
+    const vid = document.getElementById('video-player');
+    if (!vid || vid.style.display === 'none') return;
+    isSyncingFromRemote = true;
+    vid.currentTime = currentTime;
+    vid.pause();
+    isSyncingFromRemote = false;
+  });
+
+  socket.on('sync_seek', ({ currentTime }) => {
+    const vid = document.getElementById('video-player');
+    if (!vid || vid.style.display === 'none') return;
+    isSyncingFromRemote = true;
+    vid.currentTime = currentTime;
+    isSyncingFromRemote = false;
+  });
+
+  socket.on('sync_url', ({ url, videoType }) => {
+    loadVideo(url, videoType, false);
+    addSystemMessage('Partner loaded a new video');
+  });
+
+  socket.on('sync_buffer', ({ buffering, from }) => {
+    const indicator = document.getElementById('buffer-indicator');
+    indicator.classList.toggle('show', buffering);
+  });
+
+  socket.on('reaction', ({ emoji, from }) => {
+    spawnFloatingReaction(emoji);
+  });
+
+  socket.on('typing', ({ userName, isTyping: typing, id }) => {
+    if (id === socket.id) return;
+    const indicator = document.getElementById('typing-indicator');
+    document.getElementById('typing-name').textContent = userName;
+    indicator.classList.toggle('show', typing);
+  });
+
+  socket.on('countdown_start', ({ from }) => {
+    runCountdown();
+  });
+}
+
+// ══════════════════════════════════════════════
+//  UI HELPERS
+// ══════════════════════════════════════════════
+function updateUsersUI() {
+  const list = document.getElementById('users-list');
+  list.innerHTML = '';
+  roomUsers.forEach(u => {
+    const pill = document.createElement('div');
+    pill.className = 'user-pill';
+    pill.innerHTML = `<div class="dot">${u.name.charAt(0).toUpperCase()}</div>${u.name}`;
+    list.appendChild(pill);
+  });
+  const count = roomUsers.length;
+  document.getElementById('viewer-count-text').textContent = `${count} watching`;
+}
+
+function updateWaitingOverlay() {
+  const overlay = document.getElementById('waiting-overlay');
+  overlay.classList.toggle('show', roomUsers.length < 2);
+}
+
+function updatePartnerAvatar() {
+  const others = roomUsers.filter(u => u.id !== (socket && socket.id));
+  const avatar = document.getElementById('partner-avatar');
+  if (others.length > 0) {
+    const partner = others[0];
+    document.getElementById('partner-initials').textContent = partner.name.charAt(0).toUpperCase();
+    document.getElementById('partner-name-display').textContent = partner.name;
+    avatar.classList.add('show');
+  } else {
+    avatar.classList.remove('show');
+  }
+}
+
+function showToast(msg, type = '') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3200);
+}
+
+function showExtractError(msg, hint) {
+  // Remove any existing extract error
+  const existing = document.getElementById('extract-error-toast');
+  if (existing) existing.remove();
+
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.id = 'extract-error-toast';
+  el.className = 'toast gold';
+  el.style.cssText = 'max-width:320px;line-height:1.5;pointer-events:auto;cursor:pointer;animation:toastIn 0.3s ease-out;';
+  el.innerHTML = `<strong>⚠️ Video not found</strong><br><span style="font-size:0.75rem;color:var(--text-dim)">${msg}</span>`
+    + (hint ? `<br><span style="font-size:0.72rem;color:var(--cyan);margin-top:4px;display:block">💡 ${hint}</span>` : '');
+  el.onclick = () => el.remove();
+  container.appendChild(el);
+  setTimeout(() => el && el.remove(), 9000);
+}
+
+function copyRoomCode() {
+  navigator.clipboard.writeText(myRoom).then(() => showToast(`Room code ${myRoom} copied!`, 'gold')).catch(() => {});
+}
+
+function addSystemMessage(text) {
+  const msg = document.createElement('div');
+  msg.className = 'chat-message system';
+  msg.innerHTML = `<div class="msg-bubble">${text}</div>`;
+  appendChatMessage(msg);
+}
+
+function addChatMessage(name, text, timestamp, isOwn) {
+  const msg = document.createElement('div');
+  msg.className = 'chat-message' + (isOwn ? ' own' : '');
+  const time = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  msg.innerHTML = `
+    <div class="msg-meta">
+      <span class="msg-name">${escapeHtml(name)}</span>
+      <span class="msg-time">${time}</span>
+    </div>
+    <div class="msg-bubble">${escapeHtml(text)}</div>`;
+  appendChatMessage(msg);
+}
+
+function appendChatMessage(el) {
+  const container = document.getElementById('chat-messages');
+  container.appendChild(el);
+  container.scrollTop = container.scrollHeight;
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ══════════════════════════════════════════════
+//  CHAT
+// ══════════════════════════════════════════════
+function handleChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+}
+
+function sendChat() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg || !socket) return;
+  socket.emit('chat_msg', { message: msg, userName: myName });
+  input.value = '';
+  stopTyping();
+}
+
+function handleTyping() {
+  if (!socket) return;
+  if (!isTyping) {
+    isTyping = true;
+    socket.emit('typing', { isTyping: true });
+  }
+  clearTimeout(typingTimer);
+  typingTimer = setTimeout(stopTyping, 2000);
+}
+
+function stopTyping() {
+  if (isTyping && socket) {
+    isTyping = false;
+    socket.emit('typing', { isTyping: false });
+  }
+  clearTimeout(typingTimer);
+}
+
+function toggleChat() {
+  const panel = document.getElementById('chat-panel');
+  const btn = document.getElementById('chat-toggle-btn');
+  if (isMobile()) {
+    panel.classList.toggle('mobile-open');
+    chatVisible = panel.classList.contains('mobile-open');
+  } else {
+    chatVisible = !chatVisible;
+    panel.classList.toggle('hidden', !chatVisible);
+  }
+  btn.classList.toggle('active', chatVisible);
+}
+
+// ══════════════════════════════════════════════
+//  REACTIONS
+// ══════════════════════════════════════════════
+function sendReaction(emoji) {
+  if (!socket) return;
+  socket.emit('reaction', { emoji });
+}
+
+function spawnFloatingReaction(emoji) {
+  const container = document.getElementById('reaction-container');
+  const el = document.createElement('div');
+  el.className = 'floating-reaction';
+  el.textContent = emoji;
+  el.style.left = (Math.random() * 140 - 20) + 'px';
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 2600);
+}
+
+// ══════════════════════════════════════════════
+//  VIDEO LOADING
+// ══════════════════════════════════════════════
+function setSourceTab(tab, btn) {
+  currentSourceTab = tab;
+  document.querySelectorAll('.source-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const input = document.getElementById('source-input');
+  const placeholders = {
+    url: 'Paste direct video URL or webpage URL…',
+    youtube: 'Paste YouTube URL (e.g. https://youtube.com/watch?v=…)',
+    vimeo: 'Paste Vimeo URL (e.g. https://vimeo.com/123456789)',
+    dailymotion: 'Paste Dailymotion URL (e.g. https://www.dailymotion.com/video/…)'
+  };
+  input.placeholder = placeholders[tab] || 'Paste URL…';
+}
+
+async function loadSourceUrl() {
+  const raw = document.getElementById('source-input').value.trim();
+  if (!raw) return;
+
+  let url = raw;
+  let type = 'direct';
+
+  if (currentSourceTab === 'youtube' || isYouTubeUrl(raw)) {
+    const videoId = extractYouTubeId(raw);
+    if (!videoId) { showToast('Could not parse YouTube URL', 'gold'); return; }
+    url = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&controls=1`;
+    type = 'iframe';
+  } else if (currentSourceTab === 'vimeo' || raw.includes('vimeo.com')) {
+    const vid = raw.match(/vimeo\.com\/(\d+)/)?.[1];
+    if (!vid) { showToast('Could not parse Vimeo URL', 'gold'); return; }
+    url = `https://player.vimeo.com/video/${vid}?autoplay=1`;
+    type = 'iframe';
+  } else if (currentSourceTab === 'dailymotion' || raw.includes('dailymotion.com')) {
+    const vid = raw.match(/dailymotion\.com\/video\/([a-z0-9]+)/i)?.[1];
+    if (!vid) { showToast('Could not parse Dailymotion URL', 'gold'); return; }
+    url = `https://www.dailymotion.com/embed/video/${vid}?autoplay=1`;
+    type = 'iframe';
+  } else if (isDirectVideoUrl(raw)) {
+    type = 'direct';
+  } else {
+    // Try to extract video from webpage
+    showToast('Extracting video from page…', '');
+    try {
+      const res = await fetch(`/api/extract?url=${encodeURIComponent(raw)}`);
+      const data = await res.json();
+      if (data.url) {
+        url = data.url;
+        type = data.videoType || 'direct';
+        showToast(type === 'iframe' ? 'Embed player found!' : 'Video extracted!', 'cyan');
+      } else {
+        // Show actionable error
+        const hint = data.hint ? `\n\n💡 ${data.hint}` : '';
+        showExtractError(data.error || 'No video found on that page', data.hint);
+        return;
+      }
+    } catch (e) {
+      showToast('Failed to extract video — check the URL', 'gold');
+      return;
+    }
+  }
+
+  loadVideo(url, type, true);
+}
+
+function isYouTubeUrl(url) {
+  return /youtube\.com|youtu\.be/.test(url);
+}
+
+function extractYouTubeId(url) {
+  const patterns = [
+    /[?&]v=([^&]+)/,
+    /youtu\.be\/([^?&]+)/,
+    /embed\/([^?&]+)/,
+    /shorts\/([^?&]+)/
+  ];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
+  return null;
+}
+
+function isDirectVideoUrl(url) {
+  return /\.(mp4|webm|mkv|ogv|ogg|m3u8|mov|avi|flv)(\?|#|$)/i.test(url) || url.includes('archive.org/download');
+}
+
+function loadVideo(url, type, broadcast) {
+  const vid = document.getElementById('video-player');
+  const iframe = document.getElementById('iframe-player');
+  const noVideo = document.getElementById('no-video');
+  const controls = document.getElementById('video-controls');
+
+  noVideo.style.display = 'none';
+
+  if (type === 'iframe') {
+    vid.style.display = 'none';
+    vid.pause();
+    vid.src = '';
+    controls.style.opacity = '0';
+    controls.style.pointerEvents = 'none';
+    iframe.style.display = 'block';
+    iframe.src = url;
+  } else {
+    iframe.style.display = 'none';
+    iframe.src = '';
+    controls.style.pointerEvents = '';
+    vid.style.display = 'block';
+    vid.src = url;
+    vid.load();
+  }
+
+  if (broadcast && socket) {
+    socket.emit('sync_url', { url, videoType: type });
+    addSystemMessage('You loaded a new video');
+  }
+}
+
+function loadLocalFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  const vid = document.getElementById('video-player');
+  const iframe = document.getElementById('iframe-player');
+  iframe.style.display = 'none';
+  iframe.src = '';
+  document.getElementById('no-video').style.display = 'none';
+  vid.style.display = 'block';
+  vid.src = url;
+  vid.load();
+  addSystemMessage(`Local file loaded: ${file.name} (visible only to you)`);
+  showToast('Local file loaded — only visible to you', 'gold');
+}
+
+// ══════════════════════════════════════════════
+//  VIDEO PLAYER CONTROLS
+// ══════════════════════════════════════════════
+const vid = document.getElementById('video-player');
+
+vid.addEventListener('play', () => {
+  if (isSyncingFromRemote) return;
+  document.getElementById('play-icon').innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+});
+
+vid.addEventListener('pause', () => {
+  if (isSyncingFromRemote) return;
+  document.getElementById('play-icon').innerHTML = '<path d="M8 5v14l11-7z"/>';
+});
+
+vid.addEventListener('play', () => {
+  if (isSyncingFromRemote || !socket) return;
+  socket.emit('sync_play', { currentTime: vid.currentTime });
+});
+
+vid.addEventListener('pause', () => {
+  if (isSyncingFromRemote || !socket) return;
+  socket.emit('sync_pause', { currentTime: vid.currentTime });
+});
+
+vid.addEventListener('seeked', () => {
+  if (isSyncingFromRemote || !socket) return;
+  socket.emit('sync_seek', { currentTime: vid.currentTime });
+});
+
+vid.addEventListener('waiting', () => {
+  if (socket) socket.emit('sync_buffer', { buffering: true });
+});
+
+vid.addEventListener('canplay', () => {
+  if (socket) socket.emit('sync_buffer', { buffering: false });
+});
+
+vid.addEventListener('timeupdate', updateProgressBar);
+vid.addEventListener('loadedmetadata', updateProgressBar);
+
+// Drift correction
+setInterval(() => {
+  if (!socket || vid.paused || vid.style.display === 'none') return;
+}, 5000);
+
+function updateProgressBar() {
+  if (!vid.duration) return;
+  const pct = (vid.currentTime / vid.duration) * 100;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('time-display').textContent = `${formatTime(vid.currentTime)} / ${formatTime(vid.duration)}`;
+}
+
+function formatTime(s) {
+  if (isNaN(s)) return '0:00';
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${sec.toString().padStart(2, '0')}`;
+}
+
+function seekVideo(e) {
+  if (!vid.duration) return;
+  const bar = document.getElementById('progress-bar');
+  const rect = bar.getBoundingClientRect();
+  const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  vid.currentTime = pct * vid.duration;
+}
+
+function togglePlayPause() {
+  if (vid.paused) {
+    if (socket && roomUsers.length > 1) {
+      socket.emit('countdown_start');
+      runCountdown().then(() => vid.play().catch(() => {}));
+    } else {
+      vid.play().catch(() => {});
+    }
+  } else {
+    vid.pause();
+  }
+}
+
+function runCountdown() {
+  return new Promise(resolve => {
+    const overlay = document.getElementById('countdown-overlay');
+    const numEl = document.getElementById('countdown-number');
+    overlay.classList.add('show');
+    let count = 3;
+    numEl.textContent = count;
+    const interval = setInterval(() => {
+      count--;
+      if (count === 0) {
+        numEl.textContent = 'GO!';
+        clearInterval(interval);
+        setTimeout(() => {
+          overlay.classList.remove('show');
+          resolve();
+        }, 600);
+      } else {
+        numEl.textContent = count;
+        // reset animation
+        numEl.style.animation = 'none';
+        numEl.offsetHeight;
+        numEl.style.animation = '';
+      }
+    }, 900);
+  });
+}
+
+function toggleMute() {
+  vid.muted = !vid.muted;
+  const icon = document.getElementById('mute-icon');
+  if (vid.muted) {
+    icon.innerHTML = '<path d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6"/>';
+  } else {
+    icon.innerHTML = '<path d="M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>';
+  }
+}
+
+function setVolume(val) {
+  vid.volume = parseFloat(val);
+  vid.muted = false;
+}
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.getElementById('video-wrapper').requestFullscreen().catch(() => {});
+  } else {
+    document.exitFullscreen();
+  }
+}
+
+// ══════════════════════════════════════════════
+//  SEARCH
+// ══════════════════════════════════════════════
+function toggleSearch() {
+  searchVisible = !searchVisible;
+  const panel = document.getElementById('search-panel');
+  panel.classList.toggle('open', searchVisible);
+  document.getElementById('search-toggle-btn').classList.toggle('active', searchVisible);
+  if (searchVisible) document.getElementById('search-input').focus();
+}
+
+async function doSearch() {
+  const q = document.getElementById('search-input').value.trim();
+  if (!q) return;
+  const results = document.getElementById('search-results');
+  results.innerHTML = '<div class="search-loading">Searching…</div>';
+  try {
+    const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    if (!data.length) { results.innerHTML = '<div class="search-loading">No results found</div>'; return; }
+    results.innerHTML = '';
+    data.forEach(item => {
+      const el = document.createElement('div');
+      el.className = 'search-item';
+      el.title = item.title;
+      el.innerHTML = `
+        <img class="search-thumb" src="${item.thumbnail}" alt="${escapeHtml(item.title)}"
+          onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 160 90%22><rect fill=%22%23111520%22 width=%22160%22 height=%2290%22/><text fill=%22%237a8199%22 x=%2280%22 y=%2250%22 text-anchor=%22middle%22 font-size=%2212%22>No image</text></svg>'" />
+        <div class="search-title">${escapeHtml(item.title)}</div>`;
+      el.onclick = () => loadArchiveItem(item);
+      results.appendChild(el);
+    });
+  } catch (e) {
+    results.innerHTML = '<div class="search-loading">Search failed — check your connection</div>';
+  }
+}
+
+async function loadArchiveItem(item) {
+  showToast(`Loading: ${item.title}`, 'cyan');
+  // Try direct .mp4 URL first, then fall back to extract
+  let videoUrl = item.directUrl;
+  let type = 'direct';
+  try {
+    const head = await fetch(videoUrl, { method: 'HEAD' });
+    if (!head.ok) throw new Error('not found');
+  } catch {
+    try {
+      const res = await fetch(`/api/extract?url=${encodeURIComponent(item.url)}`);
+      const data = await res.json();
+      if (data.url) { videoUrl = data.url; }
+    } catch {}
+  }
+  loadVideo(videoUrl, type, true);
+  document.getElementById('source-input').value = videoUrl;
+}
+
+// ══════════════════════════════════════════════
+//  KEYBOARD SHORTCUTS
+// ══════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+  if (e.code === 'Space') { e.preventDefault(); togglePlayPause(); }
+  if (e.code === 'ArrowLeft') { if (vid.duration) vid.currentTime = Math.max(0, vid.currentTime - 5); }
+  if (e.code === 'ArrowRight') { if (vid.duration) vid.currentTime = Math.min(vid.duration, vid.currentTime + 5); }
+  if (e.code === 'KeyM') toggleMute();
+  if (e.code === 'KeyF') toggleFullscreen();
+});
+</script>
+</body>
+</html>
