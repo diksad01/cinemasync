@@ -60,6 +60,14 @@ app.get('/coming-soon', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'coming-soon.html'));
 });
 
+// Payment result pages
+app.get('/payment/cancel', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'payment-cancel.html'));
+});
+app.get('/payment/success', (req, res) => {
+  res.redirect('/?upgraded=1');
+});
+
 // ── Waitlist API ──────────────────────────────────────────────────
 // In-memory for now — replace with Firestore/Supabase later
 const waitlistEmails = new Set();

@@ -25,6 +25,12 @@
       var LAUNCH = new Date('2026-05-20T00:00:00Z');
       var path = window.location.pathname;
       if (path === '/coming-soon.html' || path.startsWith('/payment')) return;
+      // Dev bypass: visit /?dev=unlock once to set cookie, then gate is skipped forever
+      if (location.search.includes('dev=unlock')) {
+        document.cookie = 'sw_dev=1;path=/;max-age=31536000';
+        history.replaceState(null,'',location.pathname);
+      }
+      if (document.cookie.includes('sw_dev=1')) return;
       if (new Date() < LAUNCH) {
         window.location.replace('/coming-soon.html');
       }
