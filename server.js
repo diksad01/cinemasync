@@ -332,6 +332,11 @@ io.on('connection', (socket) => {
     // Notify others
     socket.to(code).emit('user_joined', { name: userName, id: socket.id });
 
+    // If room has no video URL (e.g. after server restart), ask existing users to re-sync
+    if (!room.videoUrl) {
+      socket.to(code).emit('request_state_sync');
+    }
+
     // Broadcast updated user list
     io.to(code).emit('room_users', Object.values(rooms[code].users));
   });

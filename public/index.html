@@ -730,6 +730,24 @@ function initSocket() {
     showToast(`Playing: ${fileName}`, 'cyan');
   });
 
+  socket.on('request_state_sync', () => {
+    const vid = document.getElementById('video-player');
+    const srcInput = document.getElementById('source-input').value.trim();
+    const currentUrl = (vid && vid.style.display !== 'none' && vid.src) ? vid.src : srcInput;
+    if (!currentUrl || currentUrl === window.location.href) return;
+    const isIframe = document.getElementById('iframe-player').style.display !== 'none';
+    const iframeSrc = document.getElementById('iframe-player').src;
+    const url = isIframe ? iframeSrc : currentUrl;
+    const type = isIframe ? 'iframe' : 'direct';
+    if (!url || url === window.location.href || url.endsWith('/')) return;
+    socket.emit('sync_url', { url, videoType: type });
+    if (vid && vid.style.display !== 'none') {
+      socket.emit('sync_seek', { currentTime: vid.currentTime });
+      if (!vid.paused) socket.emit('sync_play', { currentTime: vid.currentTime });
+      else socket.emit('sync_pause', { currentTime: vid.currentTime });
+    }
+  });
+
   let bufferToastTimer = null;
   socket.on('sync_buffer', ({ buffering }) => {
     clearTimeout(bufferToastTimer);
