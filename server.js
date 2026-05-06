@@ -36,6 +36,47 @@ app.use(express.json());
 const paymentRoutes = require('./payments');
 app.use('/api/payment', paymentRoutes);
 
+// ── Launch gate ───────────────────────────────────────────────────
+// Set LAUNCH_DATE env var on Railway when you go live (e.g. 2026-05-20T00:00:00Z)
+// Until then, / redirects to /coming-soon.html
+const LAUNCH_DATE = process.env.LAUNCH_DATE ? new Date(process.env.LAUNCH_DATE) : null;
+
+function isLaunched() {
+  if (!LAUNCH_DATE) return true; // no gate set — app is live
+  return new Date() >= LAUNCH_DATE;
+}
+
+// Serve coming-soon for root only if not launched
+app.get('/', (req, res, next) => {
+  if (!isLaunched()) {
+    return res.sendFile(path.join(__dirname, 'public', 'coming-soon.html'));
+  }
+  next();
+});
+
+// Allow direct access to coming-soon page always
+app.get('/coming-soon', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'coming-soon.html'));
+});
+
+// ── Waitlist API ──────────────────────────────────────────────────
+// In-memory for now — replace with Firestore/Supabase later
+const waitlistEmails = new Set();
+
+app.post('/api/waitlist', (req, res) => {
+  const { email, source } = req.body || {};
+  if (!email || !email.includes('@')) {
+    return res.status(400).json({ error: 'Invalid email' });
+  }
+  const normalised = email.toLowerCase().trim();
+  if (waitlistEmails.has(normalised)) {
+    return res.json({ ok: true, duplicate: true });
+  }
+  waitlistEmails.add(normalised);
+  console.log(`[Waitlist] ${normalised} (${source || 'unknown'})`);
+  res.json({ ok: true, duplicate: false });
+});
+
 // In-memory room state
 const rooms = {};
 
