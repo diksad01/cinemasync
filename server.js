@@ -5,6 +5,16 @@ const cors = require('cors');
 const axios = require('axios');
 const cheerio = require('cheerio');
 const path = require('path');
+const multer = require('multer');
+const fs = require('fs');
+const os = require('os');
+
+// Store uploaded files per room: roomCode -> { filePath, fileName, mimeType }
+const roomFiles = {};
+const upload = multer({
+  dest: os.tmpdir(),
+  limits: { fileSize: 4 * 1024 * 1024 * 1024 } // 4GB max
+});
 
 const app = express();
 const server = http.createServer(app);
@@ -55,6 +65,62 @@ app.get('/api/proxy', async (req, res) => {
     upstream.data.on('error', () => res.end());
   } catch (err) {
     res.status(500).send('Proxy error: ' + err.message);
+  }
+});
+
+// API: Upload video file for a room
+app.post('/api/upload/:roomCode', upload.single('video'), (req, res) => {
+  const code = req.params.roomCode.toUpperCase();
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+  // Clean up previous file for this room
+  if (roomFiles[code]) {
+    fs.unlink(roomFiles[code].filePath, () => {});
+  }
+
+  roomFiles[code] = {
+    filePath: req.file.path,
+    fileName: req.file.originalname,
+    mimeType: req.file.mimetype || 'video/mp4',
+    size: req.file.size
+  };
+
+  // Notify room that a new video is ready
+  io.to(code).emit('sync_url', { url: `/api/stream/${code}`, videoType: 'direct' });
+  io.to(code).emit('room_upload', { fileName: req.file.originalname });
+
+  res.json({ url: `/api/stream/${code}`, fileName: req.file.originalname });
+});
+
+// API: Stream uploaded video with range support (for seeking)
+app.get('/api/stream/:roomCode', (req, res) => {
+  const code = req.params.roomCode.toUpperCase();
+  const file = roomFiles[code];
+  if (!file) return res.status(404).send('No video uploaded for this room');
+
+  const stat = fs.statSync(file.filePath);
+  const fileSize = stat.size;
+  const range = req.headers.range;
+
+  res.setHeader('Content-Type', file.mimeType);
+  res.setHeader('Accept-Ranges', 'bytes');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Content-Disposition', `inline; filename="${file.fileName}"`);
+
+  if (range) {
+    const [startStr, endStr] = range.replace(/bytes=/, '').split('-');
+    const start = parseInt(startStr, 10);
+    const end = endStr ? parseInt(endStr, 10) : fileSize - 1;
+    const chunkSize = end - start + 1;
+    const fileStream = fs.createReadStream(file.filePath, { start, end });
+    res.writeHead(206, {
+      'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+      'Content-Length': chunkSize
+    });
+    fileStream.pipe(res);
+  } else {
+    res.setHeader('Content-Length', fileSize);
+    fs.createReadStream(file.filePath).pipe(res);
   }
 });
 

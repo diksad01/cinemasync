@@ -462,8 +462,16 @@
         onkeydown="if(event.key==='Enter') loadSourceUrl()" />
       <button class="source-submit" onclick="loadSourceUrl()">Load</button>
     </div>
-    <button class="file-btn" onclick="document.getElementById('file-input').click()">📁 Local File</button>
+    <button class="file-btn" onclick="document.getElementById('file-input').click()">📁 Local Only</button>
     <input type="file" id="file-input" accept="video/*" style="display:none" onchange="loadLocalFile(event)" />
+    <button class="file-btn" style="background:rgba(0,212,255,0.12);border-color:rgba(0,212,255,0.3);color:var(--cyan)" onclick="document.getElementById('share-file-input').click()">☁️ Share File</button>
+    <input type="file" id="share-file-input" accept="video/*" style="display:none" onchange="uploadSharedFile(event)" />
+    <div id="upload-progress" style="display:none;align-items:center;gap:8px;font-size:0.75rem;color:var(--text-dim)">
+      <div style="width:80px;height:4px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden">
+        <div id="upload-bar" style="height:100%;width:0%;background:var(--cyan);transition:width 0.2s"></div>
+      </div>
+      <span id="upload-label">Uploading…</span>
+    </div>
   </div>
 
   <!-- SEARCH PANEL -->
@@ -705,6 +713,11 @@ function initSocket() {
   socket.on('sync_url', ({ url, videoType }) => {
     loadVideo(url, videoType, false);
     addSystemMessage('Partner loaded a new video');
+  });
+
+  socket.on('room_upload', ({ fileName }) => {
+    addSystemMessage(`Partner shared a file: ${fileName} — loading now…`);
+    showToast(`Playing: ${fileName}`, 'cyan');
   });
 
   socket.on('sync_buffer', ({ buffering, from }) => {
@@ -1240,6 +1253,55 @@ function loadVideo(url, type, broadcast) {
     socket.emit('sync_url', { url, videoType: type });
     addSystemMessage('You loaded a new video');
   }
+}
+
+async function uploadSharedFile(e) {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  if (!myRoom) { showToast('Join a room first', 'gold'); return; }
+
+  const progress = document.getElementById('upload-progress');
+  const bar = document.getElementById('upload-bar');
+  const label = document.getElementById('upload-label');
+
+  progress.style.display = 'flex';
+  bar.style.width = '0%';
+  label.textContent = 'Uploading…';
+
+  const formData = new FormData();
+  formData.append('video', file);
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', `/api/upload/${myRoom}`);
+
+  xhr.upload.onprogress = (ev) => {
+    if (ev.lengthComputable) {
+      const pct = Math.round((ev.loaded / ev.total) * 100);
+      bar.style.width = pct + '%';
+      label.textContent = `${pct}% — ${(ev.loaded / 1024 / 1024).toFixed(0)}MB / ${(ev.total / 1024 / 1024).toFixed(0)}MB`;
+    }
+  };
+
+  xhr.onload = () => {
+    progress.style.display = 'none';
+    if (xhr.status === 200) {
+      const data = JSON.parse(xhr.responseText);
+      showToast(`"${file.name}" shared with room`, 'cyan');
+      addSystemMessage(`You shared: ${file.name}`);
+      loadVideo(data.url, 'direct', false);
+      document.getElementById('source-input').value = data.url;
+    } else {
+      showToast('Upload failed — file may be too large', 'gold');
+    }
+  };
+
+  xhr.onerror = () => {
+    progress.style.display = 'none';
+    showToast('Upload failed — check connection', 'gold');
+  };
+
+  xhr.send(formData);
 }
 
 function loadLocalFile(e) {
