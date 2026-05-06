@@ -917,6 +917,12 @@
     </div>
   </div>
 
+  <!-- WATCH HISTORY -->
+  <div id="history-bar" style="display:none;align-items:center;gap:6px;padding:5px 16px;background:rgba(6,8,15,0.9);border-top:1px solid rgba(255,255,255,0.04);flex-shrink:0;overflow-x:auto">
+    <span style="font-size:0.62rem;color:var(--text-dim);white-space:nowrap;flex-shrink:0">Recent:</span>
+    <div id="history-list" style="display:flex;gap:5px;align-items:center"></div>
+  </div>
+
   <!-- SOURCE BAR -->
   <div class="source-bar">
     <div class="source-tabs">
@@ -956,7 +962,7 @@
   </div>
 
   <!-- AD SLOT (free tier) -->
-  <div id="ad-slot" class="show" style="position:relative">
+  <div id="ad-slot" style="position:relative">
     <span class="ad-label">Ad</span>
     <!-- Google AdSense slot goes here -->
     <div style="width:100%;max-width:728px;height:44px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.06);border-radius:6px;display:flex;align-items:center;justify-content:center">
@@ -2088,6 +2094,7 @@ function loadVideo(url, type, broadcast) {
   const noVideo = document.getElementById('no-video');
   const controls = document.getElementById('video-controls');
 
+  if (broadcast) historyAdd(url);
   noVideo.style.display = 'none';
 
   if (type === 'iframe') {
@@ -2390,6 +2397,64 @@ async function loadArchiveItem(item) {
 }
 
 // ══════════════════════════════════════════════
+//  WATCH HISTORY (localStorage)
+// ══════════════════════════════════════════════
+const HISTORY_KEY = 'sw_history';
+const HISTORY_MAX = 5;
+
+function historyAdd(url) {
+  if (!url || url.startsWith('blob:')) return;
+  let hist = historyGet();
+  hist = hist.filter(u => u !== url);
+  hist.unshift(url);
+  hist = hist.slice(0, HISTORY_MAX);
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(hist)); } catch {}
+  renderHistory();
+}
+
+function historyGet() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
+}
+
+function renderHistory() {
+  const hist = historyGet();
+  const bar  = document.getElementById('history-bar');
+  const list = document.getElementById('history-list');
+  if (!hist.length) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  list.innerHTML = hist.map((url, i) => {
+    const label = url.length > 38 ? url.slice(0, 35) + '…' : url;
+    return `<button onclick="loadFromHistory(${i})"
+      style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:100px;
+             color:var(--text-dim);font-size:0.65rem;padding:3px 10px;cursor:pointer;white-space:nowrap;
+             font-family:'DM Sans',sans-serif;transition:var(--transition)"
+      onmouseover="this.style.borderColor='rgba(240,192,96,0.3)';this.style.color='var(--gold)'"
+      onmouseout="this.style.borderColor='rgba(255,255,255,0.08)';this.style.color='var(--text-dim)'"
+      title="${url}">${label}</button>`;
+  }).join('');
+}
+
+function loadFromHistory(idx) {
+  const url = historyGet()[idx];
+  if (!url) return;
+  document.getElementById('source-input').value = url;
+  loadSourceUrl();
+}
+
+// ══════════════════════════════════════════════
+//  AD SLOT — free users only
+// ══════════════════════════════════════════════
+function updateAdSlot() {
+  const slot = document.getElementById('ad-slot');
+  if (!slot) return;
+  if (userPlan === 'free') {
+    slot.classList.add('show');
+  } else {
+    slot.classList.remove('show');
+  }
+}
+
+// ══════════════════════════════════════════════
 //  MOBILE NAVIGATION
 // ══════════════════════════════════════════════
 let mobileUnread = 0;
@@ -2536,15 +2601,12 @@ function updateAccountPill(user) {
     signInBtn.style.display = 'flex';
     accountPill.classList.remove('show');
   }
+  updateAdSlot();
+  renderHistory();
 }
 
 function showAccountMenu() {
-  const email = currentUser?.email || '';
-  const planLabels = { free:'Free', solo:'Solo 💛', couples:'Couples ❤️', team:'Team 👥' };
-  const plan = planLabels[userPlan] || 'Free';
-  if (confirm(`Signed in as ${email}\nPlan: ${plan}\n\nSign out?`)) {
-    doSignOut();
-  }
+  window.location.href = '/account.html';
 }
 
 // ── Auth modal controls ──────────────────────
