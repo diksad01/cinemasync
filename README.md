@@ -1,16 +1,30 @@
-# CinemaSync 🎬
+# SomniWatch 🎬
 
-A real-time watch party web application. Watch movies together, synchronized, from anywhere.
+Invite-only watch parties for couples, friends & teams. Built in Nigeria 🇳🇬
+
+## Pricing (Canonical — source of truth)
+
+| Plan | Monthly | Yearly | Notes |
+|------|---------|--------|-------|
+| **Free** | ₦0 | — | 2 viewers, 2hr rooms, ads, no watermark |
+| **Regular** | ₦2,500/mo | ₦24,000/yr | 2 viewers, 3 saved rooms, file upload, queue, 3 themes |
+| **Couples ❤️** | ₦4,000/mo | ₦38,000/yr | 2 viewers, permanent room, all themes, cam+voice, recap |
+| **Couples Founders** | — | ₦28,000/yr | First 10 spots only — locked in forever |
+| **Team 👥** | ₦9,500/mo | ₦90,000/yr | Up to 10 viewers, unlimited rooms, host controls |
 
 ## Features
 
 - **Synchronized Playback** — play, pause, seek stays in sync across all viewers
-- **Multi-source Video** — direct MP4/WebM URLs, YouTube, Vimeo, Dailymotion, Archive.org, local files
-- **Live Chat** — real-time messages with timestamps
-- **Emoji Reactions** — animated floating reactions
+- **Knock-to-Join Security** — host approves every viewer, server-enforced
+- **Host Controls** — kick or mute any viewer, crown passes if host leaves
+- **Watch Queue** — playlist with auto-play next, synced to all viewers
+- **Face Cam + Voice** — WebRTC with echo cancellation
+- **Pin Moments** — timestamp pins in chat
+- **5 Mood Themes** — Dark (free), Midnight, Rose, Neon, Vintage (paid)
+- **Multi-source Video** — YouTube, Vimeo, Dailymotion, Twitch, direct URLs, local files
+- **Live Chat** — real-time messages, emoji reactions, typing indicator
+- **Chrome Extension** — sync YouTube, Disney+, Prime, Netflix + more
 - **Countdown Sync** — 3-2-1 countdown before playback starts
-- **Archive.org Search** — search and stream thousands of free movies
-- **Webpage Scraper** — paste any webpage URL to auto-extract its video
 
 ---
 
