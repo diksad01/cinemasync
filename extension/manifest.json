@@ -1,0 +1,54 @@
+{
+  "manifest_version": 3,
+  "name": "SomniWatch — Watch Together",
+  "version": "1.0.0",
+  "description": "Sync YouTube & videos with friends in private watch parties. No subscription needed.",
+  "permissions": [
+    "storage",
+    "tabs",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://www.youtube.com/*",
+    "https://youtube.com/*",
+    "https://www.dailymotion.com/*",
+    "https://vimeo.com/*",
+    "https://www.twitch.tv/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.youtube.com/*",
+        "https://youtube.com/*",
+        "https://www.dailymotion.com/*",
+        "https://vimeo.com/*",
+        "https://www.twitch.tv/*"
+      ],
+      "js": ["socket.io.min.js", "content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["socket.io.min.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

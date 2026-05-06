@@ -1,0 +1,212 @@
+// SomniWatch Popup JS
+
+const COLORS = ['#f0c060','#00d4ff','#ff6b9d','#7c6cf0','#4ade80','#fb923c','#e879f9','#34d399','#f87171','#60a5fa'];
+const SERVER_URL = 'https://web-production-0cbba.up.railway.app';
+
+let selectedColor = COLORS[0];
+let currentTab = 'create';
+let sessionActive = false;
+
+// ── Init ─────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  buildColorPickers();
+  generateCode();
+
+  // Check if already in a session
+  chrome.storage.local.get(['roomCode', 'userName', 'userColor'], (data) => {
+    if (data.roomCode) {
+      showSessionView(data.roomCode, data.userName, data.userColor);
+    }
+  });
+
+  // Listen for status updates from content script
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg.type === 'SYNC_STATUS') handleSyncStatus(msg);
+  });
+
+  document.getElementById('c-name').addEventListener('keydown', e => { if (e.key === 'Enter') createRoom(); });
+  document.getElementById('j-code').addEventListener('input', e => {
+    e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  });
+  document.getElementById('j-code').addEventListener('keydown', e => { if (e.key === 'Enter') knockRoom(); });
+});
+
+// ── Color pickers ─────────────────────────────────────────────────
+function buildColorPickers() {
+  const row = document.getElementById('c-colors');
+  COLORS.forEach((c, i) => {
+    const sw = document.createElement('div');
+    sw.className = 'swatch' + (i === 0 ? ' sel' : '');
+    sw.style.background = c;
+    sw.onclick = () => {
+      selectedColor = c;
+      row.querySelectorAll('.swatch').forEach(s => s.classList.remove('sel'));
+      sw.classList.add('sel');
+    };
+    row.appendChild(sw);
+  });
+}
+
+// ── Room code generator ───────────────────────────────────────────
+function generateCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  document.getElementById('c-code').textContent = code;
+  return code;
+}
+
+// ── Tab switcher ──────────────────────────────────────────────────
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach((b, i) => {
+    b.classList.toggle('active', (i === 0 && tab === 'create') || (i === 1 && tab === 'join'));
+  });
+  document.getElementById('tab-create').style.display = tab === 'create' ? 'flex' : 'none';
+  document.getElementById('tab-create').style.flexDirection = 'column';
+  document.getElementById('tab-create').style.gap = '10px';
+  document.getElementById('tab-join').style.display = tab === 'join' ? 'flex' : 'none';
+}
+
+// ── Create Room ───────────────────────────────────────────────────
+function createRoom() {
+  const name = document.getElementById('c-name').value.trim();
+  const code = document.getElementById('c-code').textContent;
+  const password = document.getElementById('c-password').value.trim();
+
+  if (!name) { showToast('Enter your name first', true); return; }
+
+  const sessionData = {
+    roomCode: code,
+    userName: name,
+    userColor: selectedColor,
+    password,
+    serverUrl: SERVER_URL
+  };
+
+  saveAndConnect(sessionData);
+}
+
+// ── Knock to join ─────────────────────────────────────────────────
+function knockRoom() {
+  const name = document.getElementById('j-name').value.trim();
+  const code = document.getElementById('j-code').value.trim().toUpperCase();
+  const password = document.getElementById('j-password').value.trim();
+
+  if (!name) { showToast('Enter your name first', true); return; }
+  if (code.length !== 6) { showToast('Enter a valid 6-character room code', true); return; }
+
+  // Save pending session — content script will handle must_knock / wrong_password
+  const sessionData = {
+    roomCode: code,
+    userName: name,
+    userColor: selectedColor,
+    password,
+    serverUrl: SERVER_URL
+  };
+
+  saveAndConnect(sessionData);
+  showToast('Knock sent! Waiting for host…');
+}
+
+// ── Save session & inject into active tab ─────────────────────────
+function saveAndConnect(data) {
+  chrome.storage.local.set(data, () => {
+    // Inject into the current active tab
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (!tabs[0]) { showToast('No active tab found', true); return; }
+      chrome.tabs.sendMessage(tabs[0].id, { type: 'SW_CONNECT', data }, (resp) => {
+        if (chrome.runtime.lastError) {
+          // Content script not injected yet — inject it now
+          chrome.scripting.executeScript({
+            target: { tabId: tabs[0].id },
+            files: ['socket.io.min.js', 'content.js']
+          }, () => {
+            setTimeout(() => {
+              chrome.tabs.sendMessage(tabs[0].id, { type: 'SW_CONNECT', data });
+            }, 800);
+          });
+        }
+      });
+      showSessionView(data.roomCode, data.userName, data.userColor);
+    });
+  });
+}
+
+// ── Leave Room ────────────────────────────────────────────────────
+function leaveRoom() {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs[0]) {
+      chrome.tabs.sendMessage(tabs[0].id, { type: 'SW_DISCONNECT' });
+    }
+  });
+  chrome.storage.local.remove(['roomCode', 'userName', 'userColor', 'password']);
+  showConnectView();
+}
+
+// ── Copy room link ────────────────────────────────────────────────
+function copyRoomLink() {
+  const code = document.getElementById('s-room').textContent;
+  const url = `https://watch.somniread.com/?room=${code}`;
+  navigator.clipboard.writeText(url).then(() => {
+    showToast('Room link copied!');
+  }).catch(() => {
+    showToast('Could not copy — code: ' + code);
+  });
+}
+
+// ── Views ─────────────────────────────────────────────────────────
+function showSessionView(roomCode, userName, userColor) {
+  sessionActive = true;
+  document.getElementById('view-connect').style.display = 'none';
+  document.getElementById('view-session').style.display = 'flex';
+  document.getElementById('view-session').style.flexDirection = 'column';
+  document.getElementById('view-session').style.gap = '10px';
+  document.getElementById('view-session').style.padding = '16px';
+  document.getElementById('s-room').textContent = roomCode;
+  document.getElementById('s-name').textContent = userName;
+  const dot = document.getElementById('status-dot');
+  dot.className = 'status-dot connected';
+  document.getElementById('status-text').textContent = `Connected · ${roomCode}`;
+}
+
+function showConnectView() {
+  sessionActive = false;
+  document.getElementById('view-connect').style.display = 'flex';
+  document.getElementById('view-session').style.display = 'none';
+  const dot = document.getElementById('status-dot');
+  dot.className = 'status-dot';
+  document.getElementById('status-text').textContent = 'Not connected';
+  generateCode();
+}
+
+// ── Sync status handler ───────────────────────────────────────────
+function handleSyncStatus(msg) {
+  const dot = document.getElementById('status-dot');
+  const statusText = document.getElementById('status-text');
+  const sessionMsg = document.getElementById('s-status-msg');
+
+  if (msg.status === 'connected') {
+    dot.className = 'status-dot connected';
+    statusText.textContent = `Syncing · ${msg.roomCode}`;
+    if (sessionMsg) sessionMsg.textContent = 'Syncing video ✓';
+  } else if (msg.status === 'wrong_password') {
+    dot.className = 'status-dot error';
+    statusText.textContent = 'Wrong password';
+    showToast('Wrong room password', true);
+    leaveRoom();
+  } else if (msg.status === 'must_knock') {
+    if (sessionMsg) sessionMsg.textContent = '🔔 Waiting for host to accept…';
+    statusText.textContent = 'Waiting for host…';
+  }
+}
+
+// ── Toast ─────────────────────────────────────────────────────────
+function showToast(msg, isErr) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.className = 'toast show' + (isErr ? ' err' : '');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.className = 'toast'; }, 3000);
+}

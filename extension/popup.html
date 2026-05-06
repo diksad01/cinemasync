@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SomniWatch</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #06080f; --bg2: #0c0f1a; --bg3: #111520;
+      --gold: #f0c060; --gold-dim: rgba(240,192,96,0.15);
+      --cyan: #00d4ff; --cyan-dim: rgba(0,212,255,0.12);
+      --text: #e8eaf0; --text-dim: #7a8199;
+      --radius: 10px;
+    }
+    body {
+      width: 320px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: 13px;
+      min-height: 200px;
+    }
+
+    .header {
+      background: var(--bg2);
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: linear-gradient(135deg, #0c0f1a, #1a1530);
+      border: 1px solid rgba(240,192,96,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+    }
+    .logo-text { font-weight: 700; font-size: 0.95rem; color: var(--gold); letter-spacing: 0.3px; }
+    .logo-sub { font-size: 0.68rem; color: var(--text-dim); }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #7a8199; margin-left: auto; flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .status-dot.connected { background: #4ade80; box-shadow: 0 0 6px #4ade8066; }
+    .status-dot.error { background: #ff6060; }
+
+    /* VIEWS */
+    #view-connect, #view-session { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+    #view-session { display: none; }
+
+    .label { font-size: 0.68rem; color: var(--text-dim); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 3px; }
+    .inp {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.82rem;
+      padding: 8px 12px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .inp:focus { border-color: rgba(240,192,96,0.35); }
+    .inp.code { text-transform: uppercase; letter-spacing: 3px; text-align: center; font-weight: 700; font-size: 1rem; }
+
+    .row { display: flex; gap: 8px; }
+    .color-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .swatch {
+      width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
+      border: 2px solid transparent; transition: transform 0.15s;
+      flex-shrink: 0;
+    }
+    .swatch:hover { transform: scale(1.2); }
+    .swatch.sel { border-color: #fff; box-shadow: 0 0 0 2px rgba(255,255,255,0.3); }
+
+    .btn {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .btn:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn-primary { background: linear-gradient(135deg, rgba(240,192,96,0.9), rgba(255,179,71,0.9)); color: #06080f; }
+    .btn-secondary { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: var(--text-dim); }
+    .btn-danger { background: rgba(255,96,96,0.12); border: 1px solid rgba(255,96,96,0.3); color: #ff6060; }
+    .btn-knock { background: var(--cyan-dim); border: 1px solid rgba(0,212,255,0.3); color: var(--cyan); }
+
+    /* Session view */
+    .session-box {
+      background: var(--bg2);
+      border: 1px solid rgba(240,192,96,0.15);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+    .session-room { font-family: 'Syne', system-ui, sans-serif; font-size: 1.4rem; font-weight: 800; color: var(--gold); letter-spacing: 3px; text-align: center; }
+    .session-label { font-size: 0.65rem; color: var(--text-dim); text-align: center; margin-top: 2px; }
+    .watchers { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--text-dim); }
+    .watcher-dot { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; }
+
+    .divider { height: 1px; background: rgba(255,255,255,0.05); margin: 2px 0; }
+
+    /* Status bar */
+    .status-bar {
+      background: var(--bg2);
+      padding: 8px 16px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    #status-text { flex: 1; }
+
+    /* Tabs */
+    .tabs { display: flex; background: var(--bg3); border-radius: 8px; padding: 3px; gap: 2px; }
+    .tab { flex: 1; padding: 6px; border: none; background: none; border-radius: 6px; color: var(--text-dim); font-family: inherit; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .tab.active { background: var(--gold-dim); color: var(--gold); }
+
+    /* Supported sites */
+    .sites { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+    .site-chip {
+      font-size: 0.65rem; color: var(--text-dim);
+      background: var(--bg3); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 100px; padding: 2px 8px;
+    }
+
+    .toast {
+      font-size: 0.72rem; color: var(--cyan);
+      background: var(--cyan-dim); border: 1px solid rgba(0,212,255,0.2);
+      border-radius: 6px; padding: 6px 10px;
+      display: none;
+    }
+    .toast.show { display: block; }
+    .toast.err { color: #ff9090; background: rgba(255,96,96,0.08); border-color: rgba(255,96,96,0.2); }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo-icon">🎬</div>
+  <div>
+    <div class="logo-text">SomniWatch</div>
+    <div class="logo-sub">Watch Together</div>
+  </div>
+  <div class="status-dot" id="status-dot"></div>
+</div>
+
+<!-- CONNECT VIEW -->
+<div id="view-connect">
+  <div class="tabs" id="tabs">
+    <button class="tab active" onclick="switchTab('create')">Create Room</button>
+    <button class="tab" onclick="switchTab('join')">Join Room</button>
+  </div>
+
+  <div id="tab-create">
+    <div>
+      <div class="label">Your Name</div>
+      <input class="inp" id="c-name" type="text" placeholder="Your name" maxlength="24" />
+    </div>
+    <div>
+      <div class="label">Your Color</div>
+      <div class="color-row" id="c-colors"></div>
+    </div>
+    <div>
+      <div class="label">Room Password <span style="color:#3a4160">(optional)</span></div>
+      <input class="inp" id="c-password" type="password" placeholder="Leave blank for open room" maxlength="32" />
+    </div>
+    <div id="c-code-display" style="text-align:center;padding:8px 0">
+      <div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:4px">YOUR ROOM CODE</div>
+      <div id="c-code" style="font-size:1.4rem;font-weight:800;color:var(--gold);letter-spacing:3px">——————</div>
+      <div style="font-size:0.62rem;color:var(--text-dim);margin-top:2px">Share this with your partner</div>
+    </div>
+    <button class="btn btn-primary" id="btn-create" onclick="createRoom()">Start Watch Party 🎬</button>
+  </div>
+
+  <div id="tab-join" style="display:none;flex-direction:column;gap:10px">
+    <div>
+      <div class="label">Your Name</div>
+      <input class="inp" id="j-name" type="text" placeholder="Your name" maxlength="24" />
+    </div>
+    <div>
+      <div class="label">Room Code</div>
+      <input class="inp code" id="j-code" type="text" placeholder="XXXXXX" maxlength="6" />
+    </div>
+    <div>
+      <div class="label">Room Password <span style="color:#3a4160">(if required)</span></div>
+      <input class="inp" id="j-password" type="password" placeholder="Leave blank if no password" maxlength="32" />
+    </div>
+    <button class="btn btn-knock" onclick="knockRoom()">🔔 Knock to Join</button>
+    <div style="font-size:0.65rem;color:var(--text-dim);text-align:center">The host will receive your knock and let you in</div>
+  </div>
+
+  <div class="divider"></div>
+  <div>
+    <div class="label" style="margin-bottom:5px">Works on</div>
+    <div class="sites">
+      <span class="site-chip">▶ YouTube</span>
+      <span class="site-chip">🎬 Dailymotion</span>
+      <span class="site-chip">🎥 Vimeo</span>
+      <span class="site-chip">🟣 Twitch</span>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<!-- SESSION VIEW (while connected) -->
+<div id="view-session">
+  <div class="session-box">
+    <div class="session-room" id="s-room">——</div>
+    <div class="session-label">Room Code</div>
+  </div>
+  <div class="watchers">
+    <div class="watcher-dot"></div>
+    <span id="s-watchers">1 watching</span>
+    <span style="margin-left:auto;color:var(--gold);font-size:0.65rem" id="s-name"></span>
+  </div>
+  <div class="divider"></div>
+  <div id="s-status-msg" style="font-size:0.72rem;color:var(--text-dim);text-align:center;padding:4px 0">Syncing…</div>
+  <button class="btn btn-secondary" onclick="copyRoomLink()">🔗 Copy Room Link</button>
+  <button class="btn btn-danger" onclick="leaveRoom()">Leave Room</button>
+</div>
+
+<div class="status-bar">
+  <div id="status-text">Not connected</div>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>
