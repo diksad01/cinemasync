@@ -333,11 +333,12 @@
   <div class="lobby-card">
     <div class="logo">
       <div class="logo-title">SomniWatch</div>
-      <div class="logo-sub">Private Watch Parties</div>
+      <div class="logo-sub">Invite-only Watch Parties</div>
     </div>
     <div class="lobby-tabs">
       <button class="lobby-tab active" onclick="switchLobbyTab('create')">Create Room</button>
       <button class="lobby-tab" onclick="switchLobbyTab('join')">Join Room</button>
+      <!-- Join tab: knock-only entry -->
     </div>
     <div id="tab-create" class="lobby-form">
       <div class="input-group">
@@ -379,8 +380,8 @@
         <label class="input-label">Room Password <span style="color:var(--text-dim);font-size:0.65rem">(if required)</span></label>
         <input class="lobby-input" id="join-password" type="password" placeholder="Leave blank if no password" maxlength="32" />
       </div>
-      <button class="btn-primary" onclick="joinRoom()">Join Watch Party</button>
-      <button class="btn-primary" style="background:rgba(0,212,255,0.15);border:1px solid rgba(0,212,255,0.3);color:var(--cyan);margin-top:-4px" onclick="knockRoom()">🔔 Knock to Join</button>
+      <button class="btn-primary" onclick="knockRoom()">🔔 Knock to Join</button>
+      <p style="font-size:0.7rem;color:var(--text-dim);text-align:center;margin-top:2px">The host will receive your knock and let you in</p>
     </div>
   </div>
 </div>
@@ -799,6 +800,15 @@ function initSocket() {
     socket.disconnect();
     socket = null;
     showToast('Wrong room password', 'gold');
+    switchLobbyTab('join');
+  });
+
+  socket.on('must_knock', () => {
+    document.getElementById('lobby').style.display = 'flex';
+    document.getElementById('app').classList.remove('active');
+    socket.disconnect();
+    socket = null;
+    showToast('You need to knock first — the host must let you in', 'gold');
     switchLobbyTab('join');
   });
 

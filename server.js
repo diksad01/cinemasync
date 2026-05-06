@@ -298,10 +298,12 @@ io.on('connection', (socket) => {
     currentUser = userName;
     currentColor = userColor || '#f0c060';
 
-    // Create room if new
+    // Create room if new — first user becomes the host
     if (!rooms[code]) {
       rooms[code] = {
         users: {},
+        host: socket.id,
+        approved: new Set([socket.id]),
         videoUrl: null,
         videoType: null,
         currentTime: 0,
@@ -313,6 +315,11 @@ io.on('connection', (socket) => {
       // Validate password for existing rooms
       if (rooms[code].password && rooms[code].password !== (password || '')) {
         socket.emit('wrong_password');
+        return;
+      }
+      // Block direct join — must be approved via knock
+      if (!rooms[code].approved.has(socket.id)) {
+        socket.emit('must_knock');
         return;
       }
     }
@@ -424,6 +431,9 @@ io.on('connection', (socket) => {
   });
 
   socket.on('knock_response', ({ knockerId, accepted }) => {
+    if (accepted && currentRoom && rooms[currentRoom]) {
+      rooms[currentRoom].approved.add(knockerId);
+    }
     io.to(knockerId).emit('knock_result', { accepted });
   });
 
