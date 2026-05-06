@@ -6,6 +6,12 @@ const axios = require('axios');
 const crypto = require('crypto');
 const router = express.Router();
 
+// Parse JSON for all payment routes except webhook (webhook needs raw body)
+router.use((req, res, next) => {
+  if (req.path === '/webhook') return next();
+  express.json()(req, res, next);
+});
+
 // ── Plan definitions (amounts in kobo — multiply ₦ by 100) ──────
 const PLANS = {
   solo_monthly:    { name: 'Solo Monthly',    amount: 250000,   interval: 'monthly',  tier: 'solo' },
