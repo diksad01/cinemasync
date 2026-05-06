@@ -103,7 +103,7 @@ router.get('/verify/:reference', async (req, res) => {
 // ── Paystack Webhook ─────────────────────────────────────────────
 // POST /api/payment/webhook
 // Called by Paystack on every event — must return 200 fast
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+router.post('/webhook', async (req, res) => {
   const secret = process.env.PAYSTACK_SECRET_KEY;
   const hash = crypto
     .createHmac('sha512', secret)

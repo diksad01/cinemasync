@@ -26,11 +26,15 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Payment routes — must be before express.json() so webhook can read raw body
+// Raw body parser for Paystack webhook signature verification only
+app.use('/api/payment/webhook', express.raw({ type: 'application/json' }));
+
+// JSON body parser for all other routes
+app.use(express.json());
+
+// Payment routes
 const paymentRoutes = require('./payments');
 app.use('/api/payment', paymentRoutes);
-
-app.use(express.json());
 
 // In-memory room state
 const rooms = {};
