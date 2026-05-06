@@ -250,6 +250,53 @@
     .share-btn { background: var(--cyan-dim); border: 1px solid rgba(0,212,255,0.25); border-radius: 100px; color: var(--cyan); cursor: pointer; padding: 4px 12px; font-size: 0.72rem; font-family: 'Syne', sans-serif; font-weight: 600; transition: var(--transition); letter-spacing: 0.5px; }
     .share-btn:hover { background: rgba(0,212,255,0.2); }
 
+    /* THEMES */
+    body.theme-midnight { --bg:#050814;--bg2:#0a0d1f;--bg3:#0f1228;--gold:#7c6cf0;--gold-dim:rgba(124,108,240,0.15);--cyan:#a78bfa;--cyan-dim:rgba(167,139,250,0.12);--glass:rgba(10,13,31,0.72);--glass-border:rgba(124,108,240,0.15); }
+    body.theme-rose { --bg:#0f080d;--bg2:#1a0e14;--bg3:#21111a;--gold:#ff6b9d;--gold-dim:rgba(255,107,157,0.15);--cyan:#ffb3cc;--cyan-dim:rgba(255,179,204,0.12);--glass:rgba(26,14,20,0.72);--glass-border:rgba(255,107,157,0.15); }
+    body.theme-neon { --bg:#03050a;--bg2:#060c14;--bg3:#0a1220;--gold:#00ff88;--gold-dim:rgba(0,255,136,0.12);--cyan:#00d4ff;--cyan-dim:rgba(0,212,255,0.12);--glass:rgba(6,12,20,0.72);--glass-border:rgba(0,255,136,0.12); }
+    body.theme-vintage { --bg:#0d0a06;--bg2:#17130a;--bg3:#1f1a0f;--gold:#d4a853;--gold-dim:rgba(212,168,83,0.15);--cyan:#c8956c;--cyan-dim:rgba(200,149,108,0.12);--glass:rgba(23,19,10,0.72);--glass-border:rgba(212,168,83,0.15); }
+
+    /* THEME PICKER */
+    .theme-picker-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+    .theme-swatch { width: 28px; height: 28px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: var(--transition); flex-shrink: 0; position: relative; }
+    .theme-swatch:hover { transform: scale(1.15); }
+    .theme-swatch.selected { border-color: #fff; box-shadow: 0 0 0 2px rgba(255,255,255,0.3); }
+    .theme-swatch .lock { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; background: rgba(0,0,0,0.5); border-radius: 6px; }
+
+    /* WATCH QUEUE */
+    #queue-panel { display: none; flex-direction: column; padding: 10px 16px 12px; background: var(--bg2); border-top: 1px solid rgba(255,255,255,0.05); max-height: 200px; flex-shrink: 0; }
+    #queue-panel.open { display: flex; }
+    .queue-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-family: 'Syne', sans-serif; font-size: 0.75rem; font-weight: 700; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; }
+    .queue-add-row { display: flex; gap: 6px; margin-bottom: 8px; }
+    .queue-input { flex: 1; background: var(--bg3); border: 1px solid rgba(255,255,255,0.07); border-radius: 100px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.78rem; padding: 6px 12px; outline: none; }
+    .queue-add-btn { background: var(--gold-dim); border: 1px solid rgba(240,192,96,0.25); border-radius: 100px; color: var(--gold); cursor: pointer; padding: 6px 12px; font-size: 0.72rem; font-family: 'Syne', sans-serif; font-weight: 600; white-space: nowrap; }
+    .queue-list { overflow-y: auto; display: flex; flex-direction: column; gap: 4px; max-height: 110px; }
+    .queue-item { display: flex; align-items: center; gap: 8px; background: var(--bg3); border-radius: 8px; padding: 6px 10px; font-size: 0.75rem; color: var(--text); border: 1px solid rgba(255,255,255,0.05); }
+    .queue-item.active { border-color: rgba(240,192,96,0.3); color: var(--gold); }
+    .queue-item-num { color: var(--text-dim); font-size: 0.65rem; width: 14px; flex-shrink: 0; }
+    .queue-item-url { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .queue-item-del { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 0.8rem; padding: 0 2px; line-height: 1; flex-shrink: 0; }
+    .queue-item-del:hover { color: #ff6060; }
+    .queue-play-btn { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 0.75rem; padding: 0 2px; flex-shrink: 0; }
+    .queue-play-btn:hover { color: var(--gold); }
+
+    /* PINNED MOMENTS */
+    .pin-btn { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 0.7rem; padding: 2px 4px; margin-left: 2px; transition: var(--transition); vertical-align: middle; }
+    .pin-btn:hover { color: var(--gold); }
+    .pinned-msg { background: rgba(240,192,96,0.07) !important; border-color: rgba(240,192,96,0.25) !important; }
+    .pin-timestamp { font-size: 0.65rem; color: var(--gold); font-family: 'Syne', sans-serif; cursor: pointer; margin-left: 4px; }
+    .pin-timestamp:hover { text-decoration: underline; }
+
+    /* PASSWORD FIELD */
+    .room-password-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+    .password-toggle { font-size: 0.7rem; color: var(--text-dim); cursor: pointer; white-space: nowrap; background: none; border: none; }
+    .password-toggle:hover { color: var(--gold); }
+
+    /* AD SLOT (free tier) */
+    #ad-slot { display: none; align-items: center; justify-content: center; background: rgba(255,255,255,0.02); border-top: 1px solid rgba(255,255,255,0.04); padding: 4px 16px; min-height: 52px; flex-shrink: 0; }
+    #ad-slot.show { display: flex; }
+    .ad-label { font-size: 0.6rem; color: rgba(255,255,255,0.2); position: absolute; top: 2px; left: 8px; }
+
     /* MOBILE */
     @media (max-width: 768px) {
       #chat-panel { position: fixed; bottom: 0; left: 0; right: 0; width: 100% !important; height: 70vh; z-index: 300; border-left: none; border-top: 1px solid var(--glass-border); border-radius: 20px 20px 0 0; transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.4,0,0.2,1); }
@@ -257,6 +304,22 @@
       #chat-panel.hidden { width: 100% !important; transform: translateY(100%) !important; }
       .source-tabs { display: none; }
       .app-header { padding: 8px 14px; }
+      .header-logo { font-size: 1rem; }
+      .header-room { gap: 6px; }
+      .room-badge { font-size: 0.7rem; padding: 4px 10px; }
+      .share-btn { display: none; }
+      #webcam-strip { padding: 6px 8px; }
+      .face-tile { width: 90px; height: 68px; }
+      .source-bar { flex-wrap: wrap; gap: 6px; padding: 8px; }
+      .source-input-wrap { order: -1; width: 100%; }
+      .file-btn, #upload-progress { font-size: 0.7rem; }
+      .main-area { flex-direction: column; }
+      .video-section { min-height: 40vh; }
+      #search-panel { max-height: 200px; }
+      .search-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+      .lobby-card { padding: 24px 18px; }
+      .reaction-bar { gap: 2px; padding: 6px 10px; }
+      .emoji-btn { font-size: 0.95rem; padding: 3px 5px; }
     }
     * { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.08) transparent; }
     ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -289,6 +352,14 @@
         <div class="code" id="generated-code">——</div>
         <div class="hint">Your room code — share with your partner</div>
       </div>
+      <div class="input-group" style="margin-top:-4px">
+        <label class="input-label">Room Password <span style="color:var(--text-dim);font-size:0.65rem">(optional)</span></label>
+        <input class="lobby-input" id="create-password" type="password" placeholder="Leave blank for open room" maxlength="32" />
+      </div>
+      <div class="input-group" style="margin-top:-4px">
+        <label class="input-label">Theme</label>
+        <div class="theme-picker-row" id="theme-picker"></div>
+      </div>
       <button class="btn-primary" onclick="createRoom()">Generate Room &amp; Enter</button>
     </div>
     <div id="tab-join" class="lobby-form" style="display:none">
@@ -303,6 +374,10 @@
       <div class="input-group">
         <label class="input-label">Room Code</label>
         <input class="lobby-input code-input" id="join-code" type="text" placeholder="XXXXXX" maxlength="6" />
+      </div>
+      <div class="input-group" style="margin-top:-4px">
+        <label class="input-label">Room Password <span style="color:var(--text-dim);font-size:0.65rem">(if required)</span></label>
+        <input class="lobby-input" id="join-password" type="password" placeholder="Leave blank if no password" maxlength="32" />
       </div>
       <button class="btn-primary" onclick="joinRoom()">Join Watch Party</button>
       <button class="btn-primary" style="background:rgba(0,212,255,0.15);border:1px solid rgba(0,212,255,0.3);color:var(--cyan);margin-top:-4px" onclick="knockRoom()">🔔 Knock to Join</button>
@@ -334,6 +409,10 @@
       <button class="icon-btn" id="cam-toggle-btn" onclick="toggleCamStrip()">
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7 16 12 23 17V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
         Cam
+      </button>
+      <button class="icon-btn" id="queue-toggle-btn" onclick="toggleQueue()">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Queue
       </button>
     </div>
   </header>
@@ -440,6 +519,7 @@
         <button class="emoji-btn" onclick="sendReaction('🔥')">🔥</button>
         <button class="emoji-btn" onclick="sendReaction('💀')">💀</button>
         <button class="emoji-btn" onclick="sendReaction('🥹')">🥹</button>
+        <button class="emoji-btn" title="Pin this moment" onclick="pinMoment()">📍</button>
       </div>
       <div class="chat-input-area">
         <input class="chat-input" id="chat-input" type="text" placeholder="Say something…" maxlength="300"
@@ -471,6 +551,28 @@
         <div id="upload-bar" style="height:100%;width:0%;background:var(--cyan);transition:width 0.2s"></div>
       </div>
       <span id="upload-label">Uploading…</span>
+    </div>
+  </div>
+
+  <!-- WATCH QUEUE PANEL -->
+  <div id="queue-panel">
+    <div class="queue-header">
+      <span>▶ Watch Queue</span>
+      <button onclick="toggleQueue()" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:0.8rem">✕</button>
+    </div>
+    <div class="queue-add-row">
+      <input class="queue-input" id="queue-url-input" type="text" placeholder="Paste video URL to add to queue…" onkeydown="if(event.key==='Enter')addToQueue()" />
+      <button class="queue-add-btn" onclick="addToQueue()">+ Add</button>
+    </div>
+    <div class="queue-list" id="queue-list"></div>
+  </div>
+
+  <!-- AD SLOT (free tier) -->
+  <div id="ad-slot" class="show" style="position:relative">
+    <span class="ad-label">Ad</span>
+    <!-- Google AdSense slot goes here -->
+    <div style="width:100%;max-width:728px;height:44px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.06);border-radius:6px;display:flex;align-items:center;justify-content:center">
+      <span style="font-size:0.65rem;color:rgba(255,255,255,0.15)">Advertisement</span>
     </div>
   </div>
 
@@ -521,6 +623,20 @@ let camOn = false;
 let micOn = false;
 const RTC_CONFIG = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] };
 
+// Watch queue state
+let watchQueue = [];
+let queueIndex = -1;
+
+// Themes
+const THEMES = [
+  { id: '', label: 'Dark', colors: ['#06080f','#f0c060'], free: true },
+  { id: 'theme-midnight', label: 'Midnight', colors: ['#050814','#7c6cf0'], free: false },
+  { id: 'theme-rose', label: 'Rose', colors: ['#0f080d','#ff6b9d'], free: false },
+  { id: 'theme-neon', label: 'Neon', colors: ['#03050a','#00ff88'], free: false },
+  { id: 'theme-vintage', label: 'Vintage', colors: ['#0d0a06','#d4a853'], free: false },
+];
+let currentTheme = '';
+
 // ══════════════════════════════════════════════
 //  LOBBY
 // ══════════════════════════════════════════════
@@ -561,10 +677,40 @@ function initColorPicker(containerId) {
 }
 
 // Generate on load
+function initThemePicker() {
+  const row = document.getElementById('theme-picker');
+  if (!row) return;
+  THEMES.forEach(t => {
+    const sw = document.createElement('div');
+    sw.className = 'theme-swatch' + (t.id === '' ? ' selected' : '');
+    sw.style.background = `linear-gradient(135deg, ${t.colors[0]}, ${t.colors[1]})`;
+    sw.title = t.label + (t.free ? '' : ' 🔒 Paid');
+    if (!t.free) {
+      const lock = document.createElement('span');
+      lock.className = 'lock'; lock.textContent = '🔒';
+      sw.appendChild(lock);
+    }
+    sw.onclick = () => {
+      if (!t.free) { showToast('Unlock themes with a paid plan 🔒', 'gold'); return; }
+      document.querySelectorAll('.theme-swatch').forEach(s => s.classList.remove('selected'));
+      sw.classList.add('selected');
+      applyTheme(t.id);
+    };
+    row.appendChild(sw);
+  });
+}
+
+function applyTheme(themeId) {
+  THEMES.forEach(t => document.body.classList.remove(t.id));
+  if (themeId) document.body.classList.add(themeId);
+  currentTheme = themeId;
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   generateCode();
   initColorPicker('create-colors');
   initColorPicker('join-colors');
+  initThemePicker();
 
   // Auto-fill room code from URL: /?room=ABC123
   const params = new URLSearchParams(window.location.search);
@@ -584,15 +730,17 @@ function createRoom() {
   const name = document.getElementById('create-name').value.trim();
   if (!name) { showToast('Enter your name first', 'gold'); return; }
   const code = document.getElementById('generated-code').textContent;
-  enterApp(name, code);
+  const password = document.getElementById('create-password').value.trim();
+  enterApp(name, code, password);
 }
 
 function joinRoom() {
   const name = document.getElementById('join-name').value.trim();
   const code = document.getElementById('join-code').value.trim().toUpperCase();
+  const password = document.getElementById('join-password').value.trim();
   if (!name) { showToast('Enter your name first', 'gold'); return; }
   if (code.length !== 6) { showToast('Enter a valid 6-character room code', 'gold'); return; }
-  enterApp(name, code);
+  enterApp(name, code, password);
 }
 
 function knockRoom() {
@@ -622,9 +770,11 @@ function knockRoom() {
   });
 }
 
-function enterApp(name, code) {
+let myPassword = '';
+function enterApp(name, code, password) {
   myName = name;
   myRoom = code;
+  myPassword = password || '';
 
   document.getElementById('lobby').style.display = 'none';
   document.getElementById('app').classList.add('active');
@@ -640,7 +790,16 @@ function initSocket() {
   socket = io();
 
   socket.on('connect', () => {
-    socket.emit('join', { roomCode: myRoom, userName: myName, userColor: myColor });
+    socket.emit('join', { roomCode: myRoom, userName: myName, userColor: myColor, password: myPassword });
+  });
+
+  socket.on('wrong_password', () => {
+    document.getElementById('lobby').style.display = 'flex';
+    document.getElementById('app').classList.remove('active');
+    socket.disconnect();
+    socket = null;
+    showToast('Wrong room password', 'gold');
+    switchLobbyTab('join');
   });
 
   socket.on('room_state', ({ videoUrl, videoType, currentTime, isPlaying, users }) => {
@@ -728,6 +887,12 @@ function initSocket() {
   socket.on('room_upload', ({ fileName }) => {
     addSystemMessage(`Partner shared a file: ${fileName} — loading now…`);
     showToast(`Playing: ${fileName}`, 'cyan');
+  });
+
+  socket.on('queue_add', ({ url }) => {
+    watchQueue.push(url);
+    renderQueue();
+    addSystemMessage(`Partner added to queue: ${url.slice(0,50)}${url.length>50?'…':''}`);
   });
 
   socket.on('request_state_sync', () => {
@@ -1009,6 +1174,90 @@ function teardownRemoteVideo() {
   if (remoteVid) { remoteVid.srcObject = null; remoteVid.remove(); }
   remoteTile.style.display = 'none';
   remoteTile.classList.add('no-cam');
+}
+
+// ══════════════════════════════════════════════
+//  WATCH QUEUE
+// ══════════════════════════════════════════════
+function toggleQueue() {
+  const panel = document.getElementById('queue-panel');
+  const btn = document.getElementById('queue-toggle-btn');
+  panel.classList.toggle('open');
+  btn.classList.toggle('active', panel.classList.contains('open'));
+}
+
+function addToQueue() {
+  const input = document.getElementById('queue-url-input');
+  const url = input.value.trim();
+  if (!url) return;
+  watchQueue.push(url);
+  input.value = '';
+  renderQueue();
+  showToast('Added to queue', 'cyan');
+  if (socket) socket.emit('queue_add', { url });
+}
+
+function removeFromQueue(idx) {
+  watchQueue.splice(idx, 1);
+  if (queueIndex >= watchQueue.length) queueIndex = watchQueue.length - 1;
+  renderQueue();
+}
+
+function playQueueItem(idx) {
+  if (idx < 0 || idx >= watchQueue.length) return;
+  queueIndex = idx;
+  loadSourceFromUrl(watchQueue[idx], true);
+  renderQueue();
+}
+
+function renderQueue() {
+  const list = document.getElementById('queue-list');
+  list.innerHTML = '';
+  if (watchQueue.length === 0) {
+    list.innerHTML = '<div style="color:var(--text-dim);font-size:0.73rem;text-align:center;padding:8px">Queue is empty — add a URL above</div>';
+    return;
+  }
+  watchQueue.forEach((url, i) => {
+    const item = document.createElement('div');
+    item.className = 'queue-item' + (i === queueIndex ? ' active' : '');
+    const label = url.length > 55 ? url.slice(0, 52) + '…' : url;
+    item.innerHTML = `<span class="queue-item-num">${i + 1}</span>
+      <span class="queue-item-url" title="${url}">${label}</span>
+      <button class="queue-play-btn" onclick="playQueueItem(${i})" title="Play now">▶</button>
+      <button class="queue-item-del" onclick="removeFromQueue(${i})" title="Remove">✕</button>`;
+    list.appendChild(item);
+  });
+}
+
+function loadSourceFromUrl(url, broadcast) {
+  document.getElementById('source-input').value = url;
+  const tab = url.includes('youtube.com') || url.includes('youtu.be') ? 'youtube'
+    : url.includes('vimeo.com') ? 'vimeo'
+    : url.includes('dailymotion.com') ? 'dailymotion' : 'url';
+  currentSourceTab = tab;
+  loadSourceUrl();
+}
+
+// ══════════════════════════════════════════════
+//  PINNED MOMENTS
+// ══════════════════════════════════════════════
+function pinMoment() {
+  const v = document.getElementById('video-player');
+  if (!v || v.style.display === 'none' || !v.duration) {
+    showToast('No video playing to pin a moment', 'gold');
+    return;
+  }
+  const t = v.currentTime;
+  const fmt = formatTime(t);
+  const msg = `📍 Pinned moment at ${fmt}`;
+  if (socket) socket.emit('chat_msg', { message: msg, userName: myName });
+  addChatMessage(myName, msg, Date.now(), true, myColor, t);
+}
+
+function formatTime(s) {
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = Math.floor(s % 60);
+  if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  return `${m}:${String(sec).padStart(2,'0')}`;
 }
 
 function copyRoomCode() {
@@ -1410,6 +1659,15 @@ vid.addEventListener('canplay', () => {
 vid.addEventListener('playing', () => {
   clearTimeout(bufferEmitTimer);
   if (socket) socket.emit('sync_buffer', { buffering: false });
+});
+
+vid.addEventListener('ended', () => {
+  // Auto-play next in queue
+  const next = queueIndex + 1;
+  if (next < watchQueue.length) {
+    playQueueItem(next);
+    addSystemMessage(`Playing next in queue: ${next + 1} of ${watchQueue.length}`);
+  }
 });
 
 vid.addEventListener('timeupdate', updateProgressBar);

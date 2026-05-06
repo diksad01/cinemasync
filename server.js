@@ -293,14 +293,12 @@ io.on('connection', (socket) => {
   let currentUser = null;
   let currentColor = '#f0c060';
 
-  socket.on('join', ({ roomCode, userName, userColor }) => {
+  socket.on('join', ({ roomCode, userName, userColor, password }) => {
     const code = roomCode.toUpperCase().trim();
-    currentRoom = code;
     currentUser = userName;
     currentColor = userColor || '#f0c060';
 
-    socket.join(code);
-
+    // Create room if new
     if (!rooms[code]) {
       rooms[code] = {
         users: {},
@@ -308,9 +306,19 @@ io.on('connection', (socket) => {
         videoType: null,
         currentTime: 0,
         isPlaying: false,
-        lastUpdate: Date.now()
+        lastUpdate: Date.now(),
+        password: password || ''
       };
+    } else {
+      // Validate password for existing rooms
+      if (rooms[code].password && rooms[code].password !== (password || '')) {
+        socket.emit('wrong_password');
+        return;
+      }
     }
+
+    currentRoom = code;
+    socket.join(code);
 
     rooms[code].users[socket.id] = { name: userName, id: socket.id, color: userColor };
 
@@ -438,6 +446,11 @@ io.on('connection', (socket) => {
   socket.on('webrtc_stop', () => {
     if (!currentRoom) return;
     socket.to(currentRoom).emit('webrtc_stop', { from: socket.id });
+  });
+
+  socket.on('queue_add', ({ url }) => {
+    if (!currentRoom) return;
+    socket.to(currentRoom).emit('queue_add', { url });
   });
 
 
