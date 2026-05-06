@@ -39,11 +39,12 @@ app.use('/api/payment', paymentRoutes);
 // ── Launch gate ───────────────────────────────────────────────────
 // Set LAUNCH_DATE env var on Railway when you go live (e.g. 2026-05-20T00:00:00Z)
 // Until then, / redirects to /coming-soon.html
-const LAUNCH_DATE = process.env.LAUNCH_DATE ? new Date(process.env.LAUNCH_DATE) : null;
+const LAUNCH_DATE = process.env.LAUNCH_DATE ? new Date(process.env.LAUNCH_DATE) : new Date('2026-05-20T00:00:00Z');
+const APP_LIVE = process.env.APP_LIVE === 'true';
 
 function isLaunched() {
-  if (!LAUNCH_DATE) return true; // no gate set — app is live
-  return new Date() >= LAUNCH_DATE;
+  if (APP_LIVE) return true;         // flip APP_LIVE=true on Railway to go live instantly
+  return new Date() >= LAUNCH_DATE;  // or wait for the date
 }
 
 // Serve coming-soon for root only if not launched
