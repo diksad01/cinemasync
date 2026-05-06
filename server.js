@@ -315,12 +315,18 @@ io.on('connection', (socket) => {
     rooms[code].users[socket.id] = { name: userName, id: socket.id, color: userColor };
 
     // Send current room state to joining user
+    // Calculate live position if video is currently playing
+    const room = rooms[code];
+    let liveTime = room.currentTime;
+    if (room.isPlaying && room.lastUpdate) {
+      liveTime = room.currentTime + (Date.now() - room.lastUpdate) / 1000;
+    }
     socket.emit('room_state', {
-      videoUrl: rooms[code].videoUrl,
-      videoType: rooms[code].videoType,
-      currentTime: rooms[code].currentTime,
-      isPlaying: rooms[code].isPlaying,
-      users: Object.values(rooms[code].users)
+      videoUrl: room.videoUrl,
+      videoType: room.videoType,
+      currentTime: liveTime,
+      isPlaying: room.isPlaying,
+      users: Object.values(room.users)
     });
 
     // Notify others

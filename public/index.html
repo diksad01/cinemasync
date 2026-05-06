@@ -650,13 +650,23 @@ function initSocket() {
       loadVideo(videoUrl, videoType, false);
       const vid = document.getElementById('video-player');
       isSyncingFromRemote = true;
-      vid.currentTime = currentTime;
-      if (isPlaying) {
-        vid.play().catch(() => {}).finally(() => {
+
+      const applyState = () => {
+        vid.currentTime = currentTime;
+        if (isPlaying) {
+          vid.play().catch(() => {}).finally(() => {
+            setTimeout(() => { isSyncingFromRemote = false; }, 200);
+          });
+        } else {
           setTimeout(() => { isSyncingFromRemote = false; }, 200);
-        });
+        }
+      };
+
+      // If metadata already loaded, apply immediately; otherwise wait
+      if (vid.readyState >= 1) {
+        applyState();
       } else {
-        setTimeout(() => { isSyncingFromRemote = false; }, 200);
+        vid.addEventListener('loadedmetadata', applyState, { once: true });
       }
     }
     updateWaitingOverlay();
