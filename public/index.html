@@ -37,7 +37,9 @@
       --glass: rgba(12,15,26,0.72); --glass-border: rgba(240,192,96,0.12);
       --radius: 12px; --transition: 0.22s cubic-bezier(0.4,0,0.2,1);
     }
-    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; overflow: hidden; }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; }
+    body { overflow: hidden; }
+    body.lobby-open { overflow: auto; }
     body::before {
       content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9999; opacity: 0.028;
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
@@ -45,52 +47,104 @@
     }
 
     /* LOBBY */
-    #lobby { display: flex; align-items: center; justify-content: center; height: 100vh; position: relative; overflow: hidden; }
+    #lobby {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; position: relative; overflow: auto; padding: 20px;
+    }
     #lobby::before {
-      content: ''; position: absolute; inset: -40%;
-      background: radial-gradient(ellipse 60% 50% at 50% 40%, rgba(0,212,255,0.06) 0%, transparent 70%), radial-gradient(ellipse 40% 30% at 30% 70%, rgba(240,192,96,0.04) 0%, transparent 60%);
-      pointer-events: none;
+      content: ''; position: fixed; inset: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 55% 45% at 20% 30%, rgba(240,192,96,0.07) 0%, transparent 65%),
+        radial-gradient(ellipse 50% 40% at 80% 70%, rgba(0,212,255,0.05) 0%, transparent 60%),
+        radial-gradient(ellipse 30% 30% at 60% 20%, rgba(167,139,250,0.04) 0%, transparent 55%);
     }
-    .lobby-card {
-      position: relative; background: var(--bg2); border-radius: 24px; padding: 48px 44px 44px;
-      width: min(480px, 92vw); border: 1px solid rgba(240,192,96,0.18);
-      box-shadow: 0 0 60px rgba(0,0,0,0.6), 0 0 120px rgba(0,212,255,0.04);
+    .lobby-wrap {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 0; max-width: 900px; width: 100%;
+      background: var(--bg2); border-radius: 28px;
+      border: 1px solid rgba(240,192,96,0.15);
+      box-shadow: 0 40px 120px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.03);
+      overflow: hidden; position: relative; z-index: 1;
     }
-    .lobby-card::before {
-      content: ''; position: absolute; inset: -1px; border-radius: 25px;
-      background: linear-gradient(135deg, rgba(240,192,96,0.3), transparent 40%, rgba(0,212,255,0.2) 100%);
-      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor; mask-composite: exclude; padding: 1px; pointer-events: none;
+    /* Left hero panel */
+    .lobby-hero {
+      background: linear-gradient(160deg, #080b17 0%, #0c0f20 60%, #080d1a 100%);
+      padding: 52px 40px; display: flex; flex-direction: column; justify-content: space-between;
+      border-right: 1px solid rgba(255,255,255,0.05); position: relative; overflow: hidden;
     }
-    .logo { text-align: center; margin-bottom: 36px; }
+    .lobby-hero::before {
+      content: '🎬'; position: absolute; right: -20px; bottom: -10px;
+      font-size: 9rem; opacity: 0.04; pointer-events: none; line-height: 1;
+    }
+    .logo { margin-bottom: 0; }
     .logo-title {
-      font-family: 'Syne', sans-serif; font-size: 2.2rem; font-weight: 800; letter-spacing: -0.5px;
+      font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; letter-spacing: -0.5px;
       background: linear-gradient(135deg, var(--gold) 0%, #fff8e8 50%, var(--cyan) 100%);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
       animation: logoPulse 3s ease-in-out infinite;
     }
-    @keyframes logoPulse { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.15) drop-shadow(0 0 16px rgba(240,192,96,0.4)); } }
-    .logo-sub { font-size: 0.8rem; color: var(--text-dim); letter-spacing: 3px; text-transform: uppercase; margin-top: 4px; }
-    .lobby-tabs { display: flex; gap: 4px; background: var(--bg3); border-radius: 100px; padding: 4px; margin-bottom: 28px; }
-    .lobby-tab { flex: 1; background: none; border: none; color: var(--text-dim); font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500; padding: 8px 16px; border-radius: 100px; cursor: pointer; transition: var(--transition); }
-    .lobby-tab.active { background: var(--gold-dim); color: var(--gold); border: 1px solid rgba(240,192,96,0.25); }
-    .lobby-form { display: flex; flex-direction: column; gap: 16px; }
-    .input-group { display: flex; flex-direction: column; gap: 6px; }
-    .input-label { font-size: 0.75rem; font-weight: 500; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; font-family: 'Syne', sans-serif; }
-    .lobby-input { background: var(--bg3); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 1rem; padding: 13px 16px; outline: none; transition: var(--transition); width: 100%; }
-    .lobby-input:focus { border-color: rgba(240,192,96,0.4); box-shadow: 0 0 0 3px rgba(240,192,96,0.08); }
-    .lobby-input.code-input { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 700; letter-spacing: 6px; text-align: center; text-transform: uppercase; }
-    .btn-primary {
-      background: linear-gradient(135deg, rgba(240,192,96,0.9), rgba(240,160,60,0.9)); border: none; border-radius: 100px;
-      color: #0c0f1a; font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700; letter-spacing: 1px;
-      padding: 14px 32px; cursor: pointer; transition: var(--transition); text-transform: uppercase; width: 100%; margin-top: 4px; position: relative; overflow: hidden;
+    @keyframes logoPulse { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.15) drop-shadow(0 0 16px rgba(240,192,96,0.4)); } }
+    .logo-sub { font-size: 0.72rem; color: var(--text-dim); letter-spacing: 3px; text-transform: uppercase; margin-top: 5px; }
+    .lobby-tagline {
+      font-family: 'Syne', sans-serif; font-size: 1.45rem; font-weight: 800;
+      color: var(--text); line-height: 1.3; margin: 32px 0 20px;
     }
-    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 32px rgba(240,192,96,0.35); }
-    .btn-primary:active { transform: translateY(0); }
-    .room-code-display { background: var(--bg3); border: 1px solid rgba(240,192,96,0.2); border-radius: var(--radius); padding: 16px; text-align: center; }
+    .lobby-tagline span { color: var(--gold); }
+    .lobby-features { display: flex; flex-direction: column; gap: 10px; margin-bottom: 32px; }
+    .lobby-feat {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 0.78rem; color: var(--text-dim);
+    }
+    .lobby-feat-icon {
+      width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07);
+      display: flex; align-items: center; justify-content: center; font-size: 0.85rem;
+    }
+    .lobby-feat strong { color: var(--text); font-weight: 600; }
+    .lobby-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .lobby-chip {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 100px; padding: 4px 10px; font-size: 0.65rem;
+      color: var(--text-dim); letter-spacing: 0.3px;
+    }
+    /* Right form panel */
+    .lobby-card {
+      padding: 44px 40px; display: flex; flex-direction: column; justify-content: center;
+    }
+    .lobby-form-title {
+      font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 800;
+      color: var(--text); margin-bottom: 24px;
+    }
+    .lobby-tabs { display: flex; gap: 4px; background: var(--bg3); border-radius: 100px; padding: 4px; margin-bottom: 24px; }
+    .lobby-tab { flex: 1; background: none; border: none; color: var(--text-dim); font-family: 'Syne', sans-serif; font-size: 0.8rem; font-weight: 700; padding: 9px 16px; border-radius: 100px; cursor: pointer; transition: var(--transition); }
+    .lobby-tab.active { background: var(--gold-dim); color: var(--gold); border: 1px solid rgba(240,192,96,0.25); }
+    .lobby-form { display: flex; flex-direction: column; gap: 14px; }
+    .input-group { display: flex; flex-direction: column; gap: 5px; }
+    .input-label { font-size: 0.68rem; font-weight: 700; color: var(--text-dim); letter-spacing: 0.8px; text-transform: uppercase; font-family: 'Syne', sans-serif; }
+    .lobby-input { background: var(--bg3); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.95rem; padding: 11px 14px; outline: none; transition: var(--transition); width: 100%; }
+    .lobby-input:focus { border-color: rgba(240,192,96,0.4); box-shadow: 0 0 0 3px rgba(240,192,96,0.08); }
+    .lobby-input.code-input { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 800; letter-spacing: 8px; text-align: center; text-transform: uppercase; padding: 14px; }
+    .btn-primary {
+      background: linear-gradient(135deg, #f0c060, #f0a03c); border: none; border-radius: 100px;
+      color: #06080f; font-family: 'Syne', sans-serif; font-size: 0.88rem; font-weight: 800; letter-spacing: 0.5px;
+      padding: 14px 32px; cursor: pointer; transition: var(--transition); width: 100%; margin-top: 6px;
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 32px rgba(240,192,96,0.4); }
+    .btn-primary:active { transform: translateY(0); box-shadow: none; }
+    .room-code-display {
+      background: var(--bg3); border: 1px solid rgba(240,192,96,0.2);
+      border-radius: 10px; padding: 14px; text-align: center;
+    }
     .room-code-display .code { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; letter-spacing: 8px; color: var(--gold); }
-    .room-code-display .hint { font-size: 0.75rem; color: var(--text-dim); margin-top: 4px; }
+    .room-code-display .hint { font-size: 0.7rem; color: var(--text-dim); margin-top: 4px; }
+    @media (max-width: 680px) {
+      .lobby-wrap { grid-template-columns: 1fr; }
+      .lobby-hero { padding: 32px 24px 24px; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.05); }
+      .lobby-tagline { font-size: 1.15rem; margin: 16px 0 14px; }
+      .lobby-features { display: none; }
+      .lobby-card { padding: 28px 24px; }
+      #lobby { padding: 16px; align-items: flex-start; }
+    }
 
     /* APP LAYOUT */
     #app { display: none; height: 100vh; overflow: hidden; position: relative; flex-direction: column; }
@@ -493,59 +547,97 @@
 
 <!-- LOBBY -->
 <div id="lobby">
-  <div class="lobby-card">
-    <div class="logo">
-      <div class="logo-title">SomniWatch</div>
-      <div class="logo-sub">Invite-only Watch Parties</div>
+  <div class="lobby-wrap">
+
+    <!-- LEFT: Hero -->
+    <div class="lobby-hero">
+      <div class="logo">
+        <div class="logo-title">SomniWatch</div>
+        <div class="logo-sub">Invite-only Watch Parties</div>
+      </div>
+      <div>
+        <div class="lobby-tagline">Watch together,<br><span>perfectly in sync.</span></div>
+        <div class="lobby-features">
+          <div class="lobby-feat">
+            <div class="lobby-feat-icon">🔔</div>
+            <span><strong>Knock-to-join</strong> — the host decides who enters</span>
+          </div>
+          <div class="lobby-feat">
+            <div class="lobby-feat-icon">🎥</div>
+            <span><strong>Face cam + voice</strong> — react together in real time</span>
+          </div>
+          <div class="lobby-feat">
+            <div class="lobby-feat-icon">▶</div>
+            <span><strong>Watch queue</strong> — line up your next videos</span>
+          </div>
+          <div class="lobby-feat">
+            <div class="lobby-feat-icon">👑</div>
+            <span><strong>Host controls</strong> — mute, kick, manage the room</span>
+          </div>
+        </div>
+        <div class="lobby-chips">
+          <span class="lobby-chip">YouTube</span>
+          <span class="lobby-chip">Netflix</span>
+          <span class="lobby-chip">Prime</span>
+          <span class="lobby-chip">Disney+</span>
+          <span class="lobby-chip">+ more</span>
+        </div>
+      </div>
     </div>
-    <div class="lobby-tabs">
-      <button class="lobby-tab active" onclick="switchLobbyTab('create')">Create Room</button>
-      <button class="lobby-tab" onclick="switchLobbyTab('join')">Join Room</button>
-      <!-- Join tab: knock-only entry -->
+
+    <!-- RIGHT: Form -->
+    <div class="lobby-card">
+      <div class="lobby-tabs">
+        <button class="lobby-tab active" onclick="switchLobbyTab('create')">Create Room</button>
+        <button class="lobby-tab" onclick="switchLobbyTab('join')">Join Room</button>
+      </div>
+
+      <div id="tab-create" class="lobby-form">
+        <div class="input-group">
+          <label class="input-label">Your Name</label>
+          <input class="lobby-input" id="create-name" type="text" placeholder="Enter your name" maxlength="24" />
+        </div>
+        <div class="input-group">
+          <label class="input-label">Your Color</label>
+          <div class="color-picker-row" id="create-colors"></div>
+        </div>
+        <div class="room-code-display">
+          <div class="code" id="generated-code">——</div>
+          <div class="hint">Your room code — share with your partner</div>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Room Password <span style="color:var(--text-dim);font-size:0.65rem;text-transform:none;letter-spacing:0">(optional)</span></label>
+          <input class="lobby-input" id="create-password" type="password" placeholder="Leave blank for open room" maxlength="32" />
+        </div>
+        <div class="input-group">
+          <label class="input-label">Theme</label>
+          <div class="theme-picker-row" id="theme-picker"></div>
+        </div>
+        <button class="btn-primary" onclick="createRoom()">Generate Room &amp; Enter →</button>
+      </div>
+
+      <div id="tab-join" class="lobby-form" style="display:none">
+        <div class="input-group">
+          <label class="input-label">Your Name</label>
+          <input class="lobby-input" id="join-name" type="text" placeholder="Enter your name" maxlength="24" />
+        </div>
+        <div class="input-group">
+          <label class="input-label">Your Color</label>
+          <div class="color-picker-row" id="join-colors"></div>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Room Code</label>
+          <input class="lobby-input code-input" id="join-code" type="text" placeholder="XXXXXX" maxlength="6" />
+        </div>
+        <div class="input-group">
+          <label class="input-label">Room Password <span style="color:var(--text-dim);font-size:0.65rem;text-transform:none;letter-spacing:0">(if required)</span></label>
+          <input class="lobby-input" id="join-password" type="password" placeholder="Leave blank if no password" maxlength="32" />
+        </div>
+        <button class="btn-primary" onclick="knockRoom()">🔔 Knock to Join →</button>
+        <p style="font-size:0.68rem;color:var(--text-dim);text-align:center;margin-top:-4px;line-height:1.5">The host will receive your knock and decide whether to let you in</p>
+      </div>
     </div>
-    <div id="tab-create" class="lobby-form">
-      <div class="input-group">
-        <label class="input-label">Your Name</label>
-        <input class="lobby-input" id="create-name" type="text" placeholder="Enter your name" maxlength="24" />
-      </div>
-      <div class="input-group">
-        <label class="input-label">Your Color</label>
-        <div class="color-picker-row" id="create-colors"></div>
-      </div>
-      <div class="room-code-display">
-        <div class="code" id="generated-code">——</div>
-        <div class="hint">Your room code — share with your partner</div>
-      </div>
-      <div class="input-group" style="margin-top:-4px">
-        <label class="input-label">Room Password <span style="color:var(--text-dim);font-size:0.65rem">(optional)</span></label>
-        <input class="lobby-input" id="create-password" type="password" placeholder="Leave blank for open room" maxlength="32" />
-      </div>
-      <div class="input-group" style="margin-top:-4px">
-        <label class="input-label">Theme</label>
-        <div class="theme-picker-row" id="theme-picker"></div>
-      </div>
-      <button class="btn-primary" onclick="createRoom()">Generate Room &amp; Enter</button>
-    </div>
-    <div id="tab-join" class="lobby-form" style="display:none">
-      <div class="input-group">
-        <label class="input-label">Your Name</label>
-        <input class="lobby-input" id="join-name" type="text" placeholder="Enter your name" maxlength="24" />
-      </div>
-      <div class="input-group">
-        <label class="input-label">Your Color</label>
-        <div class="color-picker-row" id="join-colors"></div>
-      </div>
-      <div class="input-group">
-        <label class="input-label">Room Code</label>
-        <input class="lobby-input code-input" id="join-code" type="text" placeholder="XXXXXX" maxlength="6" />
-      </div>
-      <div class="input-group" style="margin-top:-4px">
-        <label class="input-label">Room Password <span style="color:var(--text-dim);font-size:0.65rem">(if required)</span></label>
-        <input class="lobby-input" id="join-password" type="password" placeholder="Leave blank if no password" maxlength="32" />
-      </div>
-      <button class="btn-primary" onclick="knockRoom()">🔔 Knock to Join</button>
-      <p style="font-size:0.7rem;color:var(--text-dim);text-align:center;margin-top:2px">The host will receive your knock and let you in</p>
-    </div>
+
   </div>
 </div>
 
@@ -1069,6 +1161,7 @@ function enterApp(name, code, password) {
 
   document.getElementById('lobby').style.display = 'none';
   document.getElementById('app').classList.add('active');
+  document.body.classList.remove('lobby-open');
   document.getElementById('room-badge').textContent = code;
 
   initSocket();
@@ -1087,6 +1180,7 @@ function initSocket() {
   socket.on('wrong_password', () => {
     document.getElementById('lobby').style.display = 'flex';
     document.getElementById('app').classList.remove('active');
+    document.body.classList.add('lobby-open');
     socket.disconnect();
     socket = null;
     showToast('Wrong room password', 'gold');
@@ -1096,6 +1190,7 @@ function initSocket() {
   socket.on('must_knock', () => {
     document.getElementById('lobby').style.display = 'flex';
     document.getElementById('app').classList.remove('active');
+    document.body.classList.add('lobby-open');
     socket.disconnect();
     socket = null;
     showToast('You need to knock first — the host must let you in', 'gold');
@@ -2583,6 +2678,9 @@ document.getElementById('auth-modal').addEventListener('click', function(e) {
 
 // Init Firebase on load
 initFirebase();
+
+// Lobby starts with scrollable body
+document.body.classList.add('lobby-open');
 
 // ══════════════════════════════════════════════
 //  KEYBOARD SHORTCUTS
