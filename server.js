@@ -354,6 +354,23 @@ io.on('connection', (socket) => {
 
     // Broadcast updated user list
     io.to(code).emit('room_users', Object.values(rooms[code].users));
+
+    // Tell everyone (including joiner) who the host is
+    io.to(code).emit('host_info', { hostSocketId: rooms[code].host });
+  });
+
+  socket.on('host_kick', ({ targetId }) => {
+    if (!currentRoom || !rooms[currentRoom]) return;
+    if (rooms[currentRoom].host !== socket.id) return; // only host
+    io.to(targetId).emit('kicked');
+    // remove from approved so they can't rejoin without knocking
+    rooms[currentRoom].approved.delete(targetId);
+  });
+
+  socket.on('host_mute', ({ targetId, mute }) => {
+    if (!currentRoom || !rooms[currentRoom]) return;
+    if (rooms[currentRoom].host !== socket.id) return; // only host
+    io.to(targetId).emit('muted', { mute });
   });
 
   socket.on('chat_msg', ({ message, userName }) => {
@@ -467,9 +484,19 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     if (!currentRoom || !rooms[currentRoom]) return;
     delete rooms[currentRoom].users[socket.id];
+    rooms[currentRoom].approved.delete(socket.id);
 
     io.to(currentRoom).emit('user_left', { name: currentUser, id: socket.id });
     io.to(currentRoom).emit('room_users', Object.values(rooms[currentRoom].users));
+
+    // Reassign host if host left
+    if (rooms[currentRoom].host === socket.id) {
+      const remaining = Object.keys(rooms[currentRoom].users);
+      if (remaining.length > 0) {
+        rooms[currentRoom].host = remaining[0];
+        io.to(currentRoom).emit('host_info', { hostSocketId: remaining[0] });
+      }
+    }
 
     // Clean up empty rooms
     if (Object.keys(rooms[currentRoom].users).length === 0) {

@@ -246,6 +246,20 @@
     .cam-btn.danger { border-color: rgba(255,80,80,0.35); color: #ff6060; }
     .cam-btn svg { flex-shrink: 0; }
 
+    /* HOST CONTROLS */
+    .user-pill .crown { font-size: 0.6rem; margin-right: 1px; }
+    .host-menu { position: fixed; z-index: 900; background: var(--bg2); border: 1px solid var(--glass-border); border-radius: 12px; padding: 6px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); min-width: 160px; animation: fadeIn 0.15s; }
+    .host-menu-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; color: var(--text); transition: var(--transition); white-space: nowrap; }
+    .host-menu-item:hover { background: var(--bg3); }
+    .host-menu-item.danger { color: #ff6060; }
+    .host-menu-item.danger:hover { background: rgba(255,96,96,0.1); }
+    .host-menu-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 4px 0; }
+    #kicked-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 9000; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+    #kicked-overlay.show { display: flex; }
+    .kicked-icon { font-size: 4rem; }
+    .kicked-title { font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 800; color: #ff6060; }
+    .kicked-sub { font-size: 0.9rem; color: var(--text-dim); }
+
     /* SHARE LINK BTN */
     .share-btn { background: var(--cyan-dim); border: 1px solid rgba(0,212,255,0.25); border-radius: 100px; color: var(--cyan); cursor: pointer; padding: 4px 12px; font-size: 0.72rem; font-family: 'Syne', sans-serif; font-weight: 600; transition: var(--transition); letter-spacing: 0.5px; }
     .share-btn:hover { background: rgba(0,212,255,0.2); }
@@ -386,6 +400,17 @@
   </div>
 </div>
 
+<!-- KICKED OVERLAY -->
+<div id="kicked-overlay">
+  <div class="kicked-icon">🚪</div>
+  <div class="kicked-title">You were removed</div>
+  <div class="kicked-sub">The host has removed you from this room</div>
+  <button class="btn-primary" style="margin-top:8px;width:auto;padding:10px 32px" onclick="location.reload()">Back to Lobby</button>
+</div>
+
+<!-- HOST CONTEXT MENU -->
+<div id="host-menu" class="host-menu" style="display:none"></div>
+
 <!-- APP -->
 <div id="app">
   <header class="app-header">
@@ -504,7 +529,7 @@
     <!-- CHAT PANEL -->
     <div id="chat-panel">
       <div class="chat-header">
-        <span>Live Chat</span>
+        <span>Live Chat <span id="host-badge" style="display:none;font-size:0.65rem;background:rgba(240,192,96,0.15);border:1px solid rgba(240,192,96,0.3);color:var(--gold);padding:1px 7px;border-radius:100px;margin-left:6px">👑 Host</span></span>
         <div class="users-list" id="users-list"></div>
       </div>
       <div id="chat-messages"></div>
@@ -611,6 +636,9 @@ let chatVisible = true;
 let searchVisible = false;
 let roomUsers = [];
 let isMobile = () => window.innerWidth <= 768;
+let isHost = false;
+let hostId = null;
+let mutedUsers = new Set();
 
 const USER_COLORS = [
   '#f0c060','#00d4ff','#ff6b9d','#7c6cf0','#4ade80',
@@ -905,6 +933,27 @@ function initSocket() {
     addSystemMessage(`Partner added to queue: ${url.slice(0,50)}${url.length>50?'…':''}`);
   });
 
+  socket.on('host_info', ({ hostSocketId }) => {
+    hostId = hostSocketId;
+    isHost = (socket.id === hostSocketId);
+    updateUsersUI();
+  });
+
+  socket.on('kicked', () => {
+    socket.disconnect();
+    document.getElementById('kicked-overlay').classList.add('show');
+  });
+
+  socket.on('muted', ({ mute }) => {
+    if (mute) {
+      if (localStream) localStream.getAudioTracks().forEach(t => t.enabled = false);
+      showToast('The host has muted you 🔇', 'gold');
+    } else {
+      if (localStream) localStream.getAudioTracks().forEach(t => t.enabled = true);
+      showToast('You have been unmuted 🔊', 'cyan');
+    }
+  });
+
   socket.on('request_state_sync', () => {
     const vid = document.getElementById('video-player');
     const srcInput = document.getElementById('source-input').value.trim();
@@ -987,13 +1036,21 @@ function updateUsersUI() {
   list.innerHTML = '';
   roomUsers.forEach(u => {
     const color = u.color || '#f0c060';
+    const isThisHost = u.id === hostId;
     const pill = document.createElement('div');
     pill.className = 'user-pill';
-    pill.innerHTML = `<div class="dot" style="color:${color};border-color:${color}40">${u.name.charAt(0).toUpperCase()}</div>${u.name}`;
+    pill.title = isHost && u.id !== socket.id ? 'Click to manage' : '';
+    pill.style.cursor = isHost && u.id !== socket.id ? 'pointer' : 'default';
+    pill.innerHTML = `<div class="dot" style="color:${color};border-color:${color}40">${u.name.charAt(0).toUpperCase()}</div>${isThisHost ? '<span class="crown">👑</span>' : ''}${u.name}${mutedUsers.has(u.id) ? ' 🔇' : ''}`;
+    if (isHost && u.id !== socket.id) {
+      pill.addEventListener('click', (e) => openHostMenu(e, u));
+    }
     list.appendChild(pill);
   });
   const count = roomUsers.length;
   document.getElementById('viewer-count-text').textContent = `${count} watching`;
+  const badge = document.getElementById('host-badge');
+  if (badge) badge.style.display = isHost ? 'inline' : 'none';
 }
 
 function updateWaitingOverlay() {
@@ -1185,6 +1242,54 @@ function teardownRemoteVideo() {
   remoteTile.style.display = 'none';
   remoteTile.classList.add('no-cam');
 }
+
+// ══════════════════════════════════════════════
+//  HOST CONTROLS
+// ══════════════════════════════════════════════
+function openHostMenu(e, user) {
+  e.stopPropagation();
+  const menu = document.getElementById('host-menu');
+  const isMuted = mutedUsers.has(user.id);
+  menu.innerHTML = `
+    <div style="padding:6px 12px 4px;font-size:0.7rem;color:var(--text-dim);font-family:'Syne',sans-serif;letter-spacing:0.5px">${user.name}</div>
+    <div class="host-menu-divider"></div>
+    <div class="host-menu-item" onclick="muteUser('${user.id}','${user.name}',${!isMuted})">
+      ${isMuted ? '🔊 Unmute' : '🔇 Mute'} in room
+    </div>
+    <div class="host-menu-item danger" onclick="kickUser('${user.id}','${user.name}')">
+      🚪 Remove from room
+    </div>`;
+  const x = Math.min(e.clientX, window.innerWidth - 180);
+  const y = Math.min(e.clientY, window.innerHeight - 120);
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
+  menu.style.display = 'block';
+}
+
+function closeHostMenu() {
+  document.getElementById('host-menu').style.display = 'none';
+}
+
+function kickUser(userId, userName) {
+  closeHostMenu();
+  if (socket) socket.emit('host_kick', { targetId: userId });
+  addSystemMessage(`You removed ${userName} from the room`);
+}
+
+function muteUser(userId, userName, mute) {
+  closeHostMenu();
+  if (socket) socket.emit('host_mute', { targetId: userId, mute });
+  if (mute) {
+    mutedUsers.add(userId);
+    addSystemMessage(`You muted ${userName}`);
+  } else {
+    mutedUsers.delete(userId);
+    addSystemMessage(`You unmuted ${userName}`);
+  }
+  updateUsersUI();
+}
+
+document.addEventListener('click', closeHostMenu);
 
 // ══════════════════════════════════════════════
 //  WATCH QUEUE
