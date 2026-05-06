@@ -720,9 +720,16 @@ function initSocket() {
     showToast(`Playing: ${fileName}`, 'cyan');
   });
 
-  socket.on('sync_buffer', ({ buffering, from }) => {
+  let bufferToastTimer = null;
+  socket.on('sync_buffer', ({ buffering }) => {
+    clearTimeout(bufferToastTimer);
     const indicator = document.getElementById('buffer-indicator');
-    indicator.classList.toggle('show', buffering);
+    if (buffering) {
+      // Show subtle indicator after 1s — don't immediately interrupt
+      bufferToastTimer = setTimeout(() => indicator.classList.add('show'), 1000);
+    } else {
+      indicator.classList.remove('show');
+    }
   });
 
   socket.on('reaction', ({ emoji, from }) => {
@@ -1358,11 +1365,22 @@ vid.addEventListener('seeked', () => {
   emitSync('sync_seek', vid.currentTime);
 });
 
+let bufferEmitTimer = null;
 vid.addEventListener('waiting', () => {
-  if (socket) socket.emit('sync_buffer', { buffering: true });
+  if (!socket) return;
+  // Only emit after buffering for 2+ seconds — ignore brief network hiccups
+  bufferEmitTimer = setTimeout(() => {
+    socket.emit('sync_buffer', { buffering: true });
+  }, 2000);
 });
 
 vid.addEventListener('canplay', () => {
+  clearTimeout(bufferEmitTimer);
+  if (socket) socket.emit('sync_buffer', { buffering: false });
+});
+
+vid.addEventListener('playing', () => {
+  clearTimeout(bufferEmitTimer);
   if (socket) socket.emit('sync_buffer', { buffering: false });
 });
 
