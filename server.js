@@ -457,5 +457,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-  console.log(`CinemaSync server running on port ${PORT}`);
+  console.log(`SomniWatch server running on port ${PORT}`);
 });

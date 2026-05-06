@@ -1,7 +1,7 @@
 {
-  "name": "cinemasync",
+  "name": "somniwatch",
   "version": "1.0.0",
-  "description": "Real-time watch party web application",
+  "description": "SomniWatch — Private watch parties for couples and friends",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
