@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Payment Successful — SomniWatch</title>
+  <link rel="icon" href="/assets/favicon.ico" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #06080f; color: #e8eaf0;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: #0c0f1a; border: 1px solid rgba(240,192,96,0.25);
+      border-radius: 20px; padding: 48px 40px; max-width: 480px; width: 100%;
+      text-align: center; box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+    }
+    .icon { font-size: 4rem; margin-bottom: 20px; animation: pop 0.5s cubic-bezier(0.175,0.885,0.32,1.275); }
+    @keyframes pop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    h1 { font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 800; color: #f0c060; margin-bottom: 12px; }
+    p { color: #7a8199; line-height: 1.6; margin-bottom: 8px; }
+    .plan-badge {
+      display: inline-block; margin: 16px auto;
+      background: rgba(240,192,96,0.12); border: 1px solid rgba(240,192,96,0.3);
+      color: #f0c060; border-radius: 100px; padding: 6px 18px;
+      font-size: 0.85rem; font-weight: 600;
+    }
+    .steps {
+      background: #111520; border-radius: 12px; padding: 20px 24px;
+      margin: 24px 0; text-align: left;
+    }
+    .step { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 14px; }
+    .step:last-child { margin-bottom: 0; }
+    .step-num {
+      width: 24px; height: 24px; border-radius: 50%; background: rgba(240,192,96,0.15);
+      border: 1px solid rgba(240,192,96,0.3); color: #f0c060;
+      font-size: 0.72rem; font-weight: 700; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .step-text { font-size: 0.85rem; color: #b0b8cc; line-height: 1.5; }
+    .step-text strong { color: #e8eaf0; }
+    .btn {
+      display: block; width: 100%; padding: 14px;
+      background: linear-gradient(135deg, rgba(240,192,96,0.9), rgba(255,179,71,0.9));
+      color: #06080f; border: none; border-radius: 10px;
+      font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 800;
+      letter-spacing: 0.5px; cursor: pointer; text-decoration: none;
+      transition: opacity 0.2s; margin-top: 8px;
+    }
+    .btn:hover { opacity: 0.88; }
+    .ref { font-size: 0.65rem; color: #3a4160; margin-top: 16px; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="icon">🎉</div>
+  <h1>You're in!</h1>
+  <p>Your payment was successful.</p>
+  <div class="plan-badge" id="plan-badge">Loading plan…</div>
+  <p style="font-size:0.85rem">Check your email for confirmation. Your plan is now active.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text"><strong>Open SomniWatch</strong> and create a room — your plan features are unlocked.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text"><strong>Share your room code</strong> with your partner. They knock, you let them in.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text"><strong>Questions?</strong> WhatsApp us — priority support for paid members.</div>
+    </div>
+  </div>
+
+  <a class="btn" href="/">Start Watching →</a>
+  <div class="ref" id="ref-text"></div>
+</div>
+
+<script>
+  const params = new URLSearchParams(location.search);
+  const ref = params.get('reference') || params.get('trxref');
+
+  if (ref) {
+    document.getElementById('ref-text').textContent = 'Reference: ' + ref;
+    // Verify with server
+    fetch('/api/payment/verify/' + ref)
+      .then(r => r.json())
+      .then(data => {
+        if (data.tier) {
+          const labels = { solo: 'Solo Plan 💛', couples: 'Couples Plan ❤️', team: 'Team Plan 👥' };
+          document.getElementById('plan-badge').textContent = labels[data.tier] || data.tier;
+        }
+      })
+      .catch(() => {
+        document.getElementById('plan-badge').textContent = 'Plan Active ✓';
+      });
+  } else {
+    document.getElementById('plan-badge').textContent = 'Plan Active ✓';
+  }
+</script>
+</body>
+</html>

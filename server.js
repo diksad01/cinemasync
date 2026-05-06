@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -23,8 +24,13 @@ const io = new Server(server, {
 });
 
 app.use(cors());
-app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Payment routes — must be before express.json() so webhook can read raw body
+const paymentRoutes = require('./payments');
+app.use('/api/payment', paymentRoutes);
+
+app.use(express.json());
 
 // In-memory room state
 const rooms = {};
