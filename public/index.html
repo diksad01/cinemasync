@@ -641,11 +641,14 @@ function initSocket() {
     if (videoUrl) {
       loadVideo(videoUrl, videoType, false);
       const vid = document.getElementById('video-player');
-      if (vid && !vid.paused) {
-        isSyncingFromRemote = true;
-        vid.currentTime = currentTime;
-        if (isPlaying) vid.play().catch(() => {});
-        isSyncingFromRemote = false;
+      isSyncingFromRemote = true;
+      vid.currentTime = currentTime;
+      if (isPlaying) {
+        vid.play().catch(() => {}).finally(() => {
+          setTimeout(() => { isSyncingFromRemote = false; }, 200);
+        });
+      } else {
+        setTimeout(() => { isSyncingFromRemote = false; }, 200);
       }
     }
     updateWaitingOverlay();
@@ -677,8 +680,9 @@ function initSocket() {
     if (!vid || vid.style.display === 'none') return;
     isSyncingFromRemote = true;
     vid.currentTime = currentTime;
-    vid.play().catch(() => {});
-    isSyncingFromRemote = false;
+    vid.play().catch(() => {}).finally(() => {
+      setTimeout(() => { isSyncingFromRemote = false; }, 200);
+    });
   });
 
   socket.on('sync_pause', ({ currentTime }) => {
@@ -687,7 +691,7 @@ function initSocket() {
     isSyncingFromRemote = true;
     vid.currentTime = currentTime;
     vid.pause();
-    isSyncingFromRemote = false;
+    setTimeout(() => { isSyncingFromRemote = false; }, 200);
   });
 
   socket.on('sync_seek', ({ currentTime }) => {
@@ -695,7 +699,7 @@ function initSocket() {
     if (!vid || vid.style.display === 'none') return;
     isSyncingFromRemote = true;
     vid.currentTime = currentTime;
-    isSyncingFromRemote = false;
+    setTimeout(() => { isSyncingFromRemote = false; }, 200);
   });
 
   socket.on('sync_url', ({ url, videoType }) => {
@@ -1269,19 +1273,27 @@ vid.addEventListener('pause', () => {
   document.getElementById('play-icon').innerHTML = '<path d="M8 5v14l11-7z"/>';
 });
 
+let syncEmitTimer = null;
+function emitSync(event, currentTime) {
+  if (syncEmitTimer) clearTimeout(syncEmitTimer);
+  syncEmitTimer = setTimeout(() => {
+    if (!isSyncingFromRemote && socket) socket.emit(event, { currentTime });
+  }, 80);
+}
+
 vid.addEventListener('play', () => {
   if (isSyncingFromRemote || !socket) return;
-  socket.emit('sync_play', { currentTime: vid.currentTime });
+  emitSync('sync_play', vid.currentTime);
 });
 
 vid.addEventListener('pause', () => {
   if (isSyncingFromRemote || !socket) return;
-  socket.emit('sync_pause', { currentTime: vid.currentTime });
+  emitSync('sync_pause', vid.currentTime);
 });
 
 vid.addEventListener('seeked', () => {
   if (isSyncingFromRemote || !socket) return;
-  socket.emit('sync_seek', { currentTime: vid.currentTime });
+  emitSync('sync_seek', vid.currentTime);
 });
 
 vid.addEventListener('waiting', () => {
