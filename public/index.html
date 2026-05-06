@@ -544,7 +544,20 @@
         <div class="upgrade-plan-price">₦9,500/mo</div>
       </div>
     </div>
-    <button class="upgrade-close" onclick="closeUpgradeModal()">Maybe later</button>
+    <div style="margin-top:8px">
+      <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:6px">Your email to continue:</div>
+      <div style="display:flex;gap:8px">
+        <input type="email" id="upgrade-email" placeholder="you@example.com"
+          style="flex:1;background:var(--bg3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.85rem;padding:10px 12px;outline:none"
+          onkeydown="if(event.key==='Enter')confirmCheckout()" />
+        <button onclick="confirmCheckout()"
+          style="background:linear-gradient(135deg,rgba(240,192,96,0.9),rgba(255,179,71,0.9));color:#06080f;border:none;border-radius:8px;font-family:'Syne',sans-serif;font-size:0.8rem;font-weight:800;padding:10px 16px;cursor:pointer;white-space:nowrap">
+          Pay →
+        </button>
+      </div>
+      <div id="upgrade-email-err" style="font-size:0.7rem;color:#ff8080;margin-top:5px;display:none"></div>
+    </div>
+    <button class="upgrade-close" style="margin-top:12px" onclick="closeUpgradeModal()">Maybe later</button>
   </div>
 </div>
 
@@ -713,7 +726,7 @@
     </div>
     <button class="file-btn" onclick="document.getElementById('file-input').click()">📁 Local Only</button>
     <input type="file" id="file-input" accept="video/*" style="display:none" onchange="loadLocalFile(event)" />
-    <button class="file-btn" style="background:rgba(0,212,255,0.12);border-color:rgba(0,212,255,0.3);color:var(--cyan)" onclick="document.getElementById('share-file-input').click()">☁️ Share File</button>
+    <button class="file-btn" style="background:rgba(0,212,255,0.12);border-color:rgba(0,212,255,0.3);color:var(--cyan)" onclick="checkShareFile()">☁️ Share File</button>
     <input type="file" id="share-file-input" accept="video/*" style="display:none" onchange="uploadSharedFile(event)" />
     <div id="upload-progress" style="display:none;align-items:center;gap:8px;font-size:0.75rem;color:var(--text-dim)">
       <div style="width:80px;height:4px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden">
@@ -863,7 +876,7 @@ function initThemePicker() {
       sw.appendChild(lock);
     }
     sw.onclick = () => {
-      if (!t.free) { showUpgradeModal('Unlock premium themes with a paid plan.'); return; }
+      if (!t.free) { if (!requirePlan('solo', 'Premium themes are available on Solo plan and above.')) return; }
       document.querySelectorAll('.theme-swatch').forEach(s => s.classList.remove('selected'));
       sw.classList.add('selected');
       applyTheme(t.id);
@@ -1243,10 +1256,16 @@ function showExtractError(msg, hint) {
   setTimeout(() => el && el.remove(), 9000);
 }
 
+function checkShareFile() {
+  if (!requirePlan('solo', 'File sharing is available on Solo plan and above.')) return;
+  document.getElementById('share-file-input').click();
+}
+
 // ══════════════════════════════════════════════
 //  WEBRTC / CAM
 // ══════════════════════════════════════════════
 async function toggleCamStrip() {
+  if (!requirePlan('couples', 'Face cam & voice chat is a Couples plan feature. Upgrade to watch face-to-face.')) return;
   const strip = document.getElementById('webcam-strip');
   const btn = document.getElementById('cam-toggle-btn');
   if (strip.classList.contains('show')) {
@@ -1399,10 +1418,37 @@ function closeUpgradeModal() {
   document.getElementById('upgrade-modal').classList.remove('show');
 }
 
-async function startCheckout(planId) {
-  const email = prompt('Enter your email address to continue:');
-  if (!email || !email.includes('@')) {
-    showToast('Please enter a valid email', 'gold');
+let _pendingPlanId = null;
+
+function startCheckout(planId) {
+  _pendingPlanId = planId;
+  // Highlight selected plan visually
+  document.querySelectorAll('.upgrade-plan').forEach(el => el.classList.remove('featured'));
+  event && event.currentTarget && event.currentTarget.classList.add('featured');
+  // Pre-fill email if logged in
+  const emailInput = document.getElementById('upgrade-email');
+  if (emailInput && currentUser?.email) emailInput.value = currentUser.email;
+  if (emailInput) setTimeout(() => emailInput.focus(), 50);
+}
+
+async function confirmCheckout() {
+  const emailInput = document.getElementById('upgrade-email');
+  const errEl = document.getElementById('upgrade-email-err');
+  const email = emailInput ? emailInput.value.trim() : '';
+
+  errEl.style.display = 'none';
+
+  // If user is logged in, use their email
+  const finalEmail = currentUser?.email || email;
+
+  if (!finalEmail || !finalEmail.includes('@')) {
+    errEl.textContent = 'Please enter a valid email address.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (!_pendingPlanId) {
+    errEl.textContent = 'Please select a plan above.';
+    errEl.style.display = 'block';
     return;
   }
 
@@ -1413,7 +1459,7 @@ async function startCheckout(planId) {
     const res = await fetch('/api/payment/initialize', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, planId, userName: myName || '' })
+      body: JSON.stringify({ email: finalEmail, planId: _pendingPlanId, userName: myName || currentUser?.displayName || '' })
     });
     const data = await res.json();
     if (data.authorization_url) {
@@ -1421,9 +1467,24 @@ async function startCheckout(planId) {
     } else {
       showToast('Payment setup failed — try again', 'gold');
     }
-  } catch (err) {
+  } catch {
     showToast('Network error — please try again', 'gold');
   }
+}
+
+// ── Plan gate helper ─────────────────────────
+// Usage: if (!requirePlan('solo', 'Unlock file uploads')) return;
+function requirePlan(minTier, reason) {
+  const order = { free: 0, solo: 1, couples: 2, team: 3 };
+  const userLevel = order[userPlan] ?? 0;
+  const required  = order[minTier] ?? 1;
+  if (userLevel >= required) return true;
+  if (!currentUser) {
+    showAuthModal(reason || 'Sign in or upgrade to access this feature.', 'signup');
+  } else {
+    showUpgradeModal(reason || 'Upgrade your plan to access this feature.');
+  }
+  return false;
 }
 
 // Close upgrade modal on backdrop click
