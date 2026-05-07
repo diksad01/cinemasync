@@ -154,16 +154,24 @@
     .room-code-display .code { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; letter-spacing: 8px; color: var(--gold); }
     .room-code-display .hint { font-size: 0.7rem; color: var(--text-dim); margin-top: 4px; }
     @media (max-width: 680px) {
-      .lobby-wrap { grid-template-columns: 1fr; }
-      .lobby-hero { padding: 32px 24px 24px; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.05); }
-      .lobby-tagline { font-size: 1.15rem; margin: 16px 0 14px; }
+      .lobby-wrap { grid-template-columns: 1fr; border-radius: 20px; }
+      .lobby-hero { padding: 28px 22px 20px; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.05); }
+      .logo-title { font-size: 1.6rem; }
+      .lobby-tagline { font-size: 1.1rem; margin: 14px 0 12px; }
       .lobby-features { display: none; }
-      .lobby-card { padding: 28px 24px; }
-      #lobby { padding: 16px; align-items: flex-start; }
+      .lobby-card { padding: 24px 22px 32px; }
+      .lobby-input { font-size: 1rem; padding: 13px 14px; }
+      .lobby-input.code-input { font-size: 1.4rem; padding: 15px; }
+      .btn-primary { padding: 15px; font-size: 0.92rem; }
+      #lobby { padding: 12px; align-items: flex-start; }
+    }
+    @media (max-width: 390px) {
+      .lobby-hero { padding: 22px 18px 16px; }
+      .lobby-card { padding: 20px 18px 28px; }
     }
 
     /* APP LAYOUT */
-    #app { display: none; height: 100vh; overflow: hidden; position: relative; flex-direction: column; }
+    #app { display: none; height: 100vh; height: 100dvh; overflow: hidden; position: relative; flex-direction: column; }
     #app.active { display: flex; }
     .app-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; background: rgba(6,8,15,0.92); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.05); z-index: 100; flex-shrink: 0; }
     .header-logo { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 800; background: linear-gradient(135deg, var(--gold), var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
@@ -475,104 +483,172 @@
 
     /* MOBILE BOTTOM NAV */
     #mobile-nav { display: none; }
+
     @media (max-width: 768px) {
-      /* Bottom nav bar */
+
+      /* ── Bottom nav ─────────────────────────────────── */
       #mobile-nav {
         display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 400;
-        background: rgba(12,15,26,0.97); backdrop-filter: blur(20px);
+        background: rgba(10,12,22,0.98); backdrop-filter: blur(24px);
         border-top: 1px solid rgba(255,255,255,0.07);
-        padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+        padding: 6px 0 max(6px, env(safe-area-inset-bottom));
         justify-content: space-around; align-items: center;
       }
       .mnav-btn {
         display: flex; flex-direction: column; align-items: center; gap: 3px;
         background: none; border: none; color: var(--text-dim); cursor: pointer;
-        font-family: 'Syne', sans-serif; font-size: 0.56rem; font-weight: 700;
-        letter-spacing: 0.5px; text-transform: uppercase; padding: 4px 12px;
-        border-radius: 10px; transition: var(--transition); min-width: 52px;
+        font-family: 'Syne', sans-serif; font-size: 0.55rem; font-weight: 700;
+        letter-spacing: 0.5px; text-transform: uppercase; padding: 6px 10px;
+        border-radius: 10px; transition: var(--transition); min-width: 48px;
+        -webkit-tap-highlight-color: transparent;
       }
-      .mnav-btn svg { width: 20px; height: 20px; }
+      .mnav-btn svg { width: 22px; height: 22px; }
       .mnav-btn.active { color: var(--gold); }
       .mnav-btn .mnav-badge {
-        position: absolute; top: -2px; right: -2px; background: var(--gold);
-        color: #06080f; font-size: 0.5rem; font-weight: 800; border-radius: 100px;
+        position: absolute; top: -3px; right: -3px; background: var(--gold);
+        color: #06080f; font-size: 0.48rem; font-weight: 800; border-radius: 100px;
         padding: 1px 4px; min-width: 14px; text-align: center; line-height: 1.4;
       }
       .mnav-icon { position: relative; }
 
-      /* Chat as bottom sheet */
-      #chat-panel {
-        position: fixed; bottom: 0; left: 0; right: 0; width: 100% !important;
-        height: 75vh; z-index: 350; border-left: none;
-        border-top: 1px solid var(--glass-border);
-        border-radius: 20px 20px 0 0;
-        transform: translateY(100%);
-        transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
-        padding-bottom: max(0px, env(safe-area-inset-bottom));
+      /* ── App shell ──────────────────────────────────── */
+      #app {
+        height: 100dvh; /* dynamic viewport height — avoids iOS toolbar overlap */
+        padding-bottom: calc(56px + env(safe-area-inset-bottom));
+        overflow: hidden;
       }
-      #chat-panel::before {
-        content: ''; display: block; width: 36px; height: 4px;
-        background: rgba(255,255,255,0.15); border-radius: 2px;
-        margin: 10px auto 0; flex-shrink: 0;
-      }
-      #chat-panel.mobile-open { transform: translateY(0) !important; }
-      #chat-panel.hidden { width: 100% !important; transform: translateY(100%) !important; }
 
-      /* Layout */
-      .main-area { flex-direction: column; }
-      .video-section { min-height: 38vh; max-height: 50vh; }
-      #app { padding-bottom: 60px; }
-
-      /* Header */
-      .app-header { padding: 8px 12px; gap: 8px; }
-      .header-logo { font-size: 0.95rem; }
-      .header-room { gap: 5px; }
-      .room-badge { font-size: 0.68rem; padding: 4px 9px; }
+      /* ── Header ─────────────────────────────────────── */
+      .app-header { padding: 8px 12px; gap: 6px; flex-shrink: 0; }
+      .header-logo { font-size: 0.9rem; }
+      .header-room { gap: 6px; flex-wrap: nowrap; }
+      .room-badge { font-size: 0.68rem; padding: 5px 10px; letter-spacing: 1.5px; }
       .share-btn { display: none; }
-      #sign-in-btn { font-size: 0.65rem; padding: 4px 10px; }
+      #sign-in-btn { font-size: 0.65rem; padding: 5px 10px; }
       #account-pill { padding: 3px 8px 3px 4px; font-size: 0.68rem; }
-      /* Hide desktop action buttons — replaced by mobile nav */
       .header-actions { display: none; }
       .viewer-count { display: none; }
 
-      /* Source bar */
+      /* ── Main area & video ──────────────────────────── */
+      .main-area { flex-direction: column; overflow-y: auto; overflow-x: hidden; }
+      .video-section {
+        flex: none;
+        height: 38vw;
+        min-height: 180px;
+        max-height: 46vh;
+        overflow: hidden;
+        position: sticky; top: 0; z-index: 10;
+      }
+      .video-wrapper { height: 100%; }
+      #video-player, #iframe-player { height: 100%; }
+
+      /* Always show video controls on touch */
+      #video-controls {
+        opacity: 1 !important; transform: none !important;
+        padding: 24px 12px 10px;
+      }
+      .controls-row { gap: 8px; }
+      .ctrl-btn { padding: 8px; min-width: 36px; min-height: 36px; }
+      .ctrl-btn svg { width: 20px; height: 20px; }
+      .ctrl-btn.play-btn svg { width: 26px; height: 26px; }
+      #volume-slider { width: 56px; }
+      .time-display { font-size: 0.7rem; min-width: 80px; }
+
+      /* ── Webcam strip ───────────────────────────────── */
+      #webcam-strip { padding: 4px 8px; flex-shrink: 0; }
+      .face-tile { width: 70px; height: 52px; }
+      .cam-btn { font-size: 0.65rem; padding: 4px 10px; }
+
+      /* ── Source bar ─────────────────────────────────── */
       .source-tabs { display: none; }
-      .source-bar { flex-wrap: wrap; gap: 6px; padding: 8px 10px; }
+      .source-bar {
+        flex-wrap: wrap; gap: 6px; padding: 7px 10px; flex-shrink: 0;
+      }
       .source-input-wrap { order: -1; width: 100%; }
-      .file-btn { font-size: 0.72rem; padding: 7px 10px; }
-      #upload-progress { font-size: 0.7rem; }
+      .source-input { font-size: 0.85rem; padding: 9px 48px 9px 13px; }
+      .file-btn { font-size: 0.7rem; padding: 7px 11px; }
+      #upload-progress { font-size: 0.68rem; }
 
-      /* Video controls */
-      .controls { padding: 6px 10px; gap: 6px; }
-      .controls button { min-width: 36px; min-height: 36px; }
-      .volume-slider { width: 60px; }
+      /* ── History bar ────────────────────────────────── */
+      #history-bar { padding: 4px 10px; flex-shrink: 0; }
 
-      /* Cam strip */
-      #webcam-strip { padding: 6px 8px; }
-      .face-tile { width: 80px; height: 60px; }
+      /* ── Queue panel ────────────────────────────────── */
+      #queue-panel { max-height: 170px; flex-shrink: 0; }
 
-      /* Queue */
-      #queue-panel { max-height: 180px; }
+      /* ── Search panel ───────────────────────────────── */
+      #search-panel { max-height: 200px; flex-shrink: 0; }
+      .search-grid { grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); gap: 6px; }
 
-      /* Search */
-      #search-panel { max-height: 220px; }
-      .search-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 6px; }
+      /* ── Ad slot ────────────────────────────────────── */
+      #ad-slot { min-height: 44px; flex-shrink: 0; }
 
-      /* Lobby */
-      .lobby-card { padding: 24px 16px; margin: 12px; }
+      /* ── Chat bottom sheet ──────────────────────────── */
+      #chat-panel {
+        position: fixed; bottom: 0; left: 0; right: 0;
+        width: 100% !important; height: 72vh; z-index: 350;
+        border-left: none; border-top: 1px solid var(--glass-border);
+        border-radius: 20px 20px 0 0;
+        transform: translateY(100%);
+        transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
+        padding-bottom: max(56px, calc(56px + env(safe-area-inset-bottom)));
+      }
+      #chat-panel::before {
+        content: ''; display: block; width: 36px; height: 4px;
+        background: rgba(255,255,255,0.14); border-radius: 2px;
+        margin: 10px auto 6px; flex-shrink: 0;
+      }
+      #chat-panel.mobile-open { transform: translateY(0) !important; }
+      #chat-panel.hidden { width: 100% !important; transform: translateY(100%) !important; }
+      .chat-input { font-size: 0.88rem; }
+      .chat-send { padding: 8px 14px; font-size: 0.78rem; }
 
-      /* Reactions */
+      /* ── Reactions ──────────────────────────────────── */
       .reaction-bar { gap: 2px; padding: 6px 8px; overflow-x: auto; flex-wrap: nowrap; }
-      .emoji-btn { font-size: 1rem; padding: 4px 6px; flex-shrink: 0; }
+      .emoji-btn { font-size: 1.05rem; padding: 5px 7px; flex-shrink: 0; min-width: 36px; min-height: 36px; }
 
-      /* Modals full screen on mobile */
-      .auth-card { padding: 28px 20px; border-radius: 20px 20px 0 0; }
-      .upgrade-card { padding: 24px 18px; }
+      /* ── Auth modal ─────────────────────────────────── */
+      #auth-modal { align-items: flex-end; padding: 0; }
+      .auth-card {
+        padding: 28px 20px 32px; border-radius: 24px 24px 0 0;
+        width: 100%; max-width: 100%;
+        padding-bottom: max(32px, env(safe-area-inset-bottom));
+      }
 
-      /* Buffer indicator */
-      #buffer-indicator { bottom: 70px; }
-      #toast-container { top: auto; bottom: 70px; right: 12px; left: 12px; }
+      /* ── Upgrade modal ──────────────────────────────── */
+      #upgrade-modal { align-items: flex-end; padding: 0; }
+      .upgrade-card {
+        padding: 24px 18px 28px; border-radius: 24px 24px 0 0;
+        width: 100%; max-width: 100%;
+        padding-bottom: max(28px, env(safe-area-inset-bottom));
+        max-height: 90vh; overflow-y: auto;
+      }
+
+      /* ── Onboarding tooltip ─────────────────────────── */
+      #onboarding { bottom: calc(64px + env(safe-area-inset-bottom)); width: calc(100vw - 24px); }
+
+      /* ── Toast ──────────────────────────────────────── */
+      #toast-container { top: auto; bottom: calc(64px + env(safe-area-inset-bottom)); right: 12px; left: 12px; }
       .toast { font-size: 0.75rem; }
+
+      /* ── Buffer indicator ───────────────────────────── */
+      #buffer-indicator { bottom: 80px; }
+
+      /* ── No-video placeholder ───────────────────────── */
+      .no-video-icon { font-size: 2.4rem; }
+      .no-video-text { font-size: 0.82rem; text-align: center; padding: 0 16px; }
+
+      /* ── Kicked overlay ─────────────────────────────── */
+      #kicked-overlay { padding: 24px; }
+
+      /* ── Touch tap highlight removal ────────────────── */
+      button, a { -webkit-tap-highlight-color: transparent; }
+    }
+
+    /* Extra small phones */
+    @media (max-width: 390px) {
+      .video-section { height: 42vw; }
+      .mnav-btn { min-width: 42px; padding: 6px 6px; font-size: 0.5rem; }
+      .room-badge { font-size: 0.62rem; padding: 4px 8px; letter-spacing: 1px; }
     }
     * { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.08) transparent; }
     ::-webkit-scrollbar { width: 5px; height: 5px; }
