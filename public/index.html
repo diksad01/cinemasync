@@ -2536,15 +2536,12 @@ function dismissOnboarding() {
 function shareRoomLink() {
   const code = myRoom || document.getElementById('room-badge')?.textContent;
   if (!code || code === '——') { showToast('Join a room first', 'gold'); return; }
-  const url = `${location.origin}/?room=${code}`;
-  if (navigator.share) {
-    navigator.share({ title: 'Join my SomniWatch room', text: `Join my watch party! Room code: ${code}`, url })
-      .catch(() => {});
-  } else {
-    navigator.clipboard.writeText(url).then(() => showToast('Room link copied!', 'cyan')).catch(() => {
-      navigator.clipboard.writeText(code).then(() => showToast('Room code copied!', 'cyan'));
-    });
-  }
+  const url = `https://watch.somniread.com/?room=${code}`;
+  navigator.clipboard.writeText(url).then(() => {
+    showToast('Room link copied! Share it with your partner.', 'cyan');
+  }).catch(() => {
+    showToast(`Room code: ${code}`, 'cyan');
+  });
 }
 
 function copyRoomCode() {
