@@ -76,45 +76,27 @@ function switchTab(tab) {
   document.getElementById('tab-join').style.display = tab === 'join' ? 'flex' : 'none';
 }
 
-// ── Create Room ───────────────────────────────────────────────────
+// ── Create Room ────────────────────────────────────────────
 function createRoom() {
   const name = document.getElementById('c-name').value.trim();
   const code = document.getElementById('c-code').textContent;
-  const password = document.getElementById('c-password').value.trim();
 
   if (!name) { showToast('Enter your name first', true); return; }
 
-  const sessionData = {
-    roomCode: code,
-    userName: name,
-    userColor: selectedColor,
-    password,
-    serverUrl: SERVER_URL
-  };
-
+  const sessionData = { roomCode: code, userName: name, userColor: selectedColor, serverUrl: SERVER_URL };
   saveAndConnect(sessionData);
 }
 
-// ── Knock to join ─────────────────────────────────────────────────
+// ── Join Room ────────────────────────────────────────────
 function knockRoom() {
   const name = document.getElementById('j-name').value.trim();
   const code = document.getElementById('j-code').value.trim().toUpperCase();
-  const password = document.getElementById('j-password').value.trim();
 
   if (!name) { showToast('Enter your name first', true); return; }
   if (code.length !== 6) { showToast('Enter a valid 6-character room code', true); return; }
 
-  // Save pending session — content script will handle must_knock / wrong_password
-  const sessionData = {
-    roomCode: code,
-    userName: name,
-    userColor: selectedColor,
-    password,
-    serverUrl: SERVER_URL
-  };
-
+  const sessionData = { roomCode: code, userName: name, userColor: selectedColor, serverUrl: SERVER_URL };
   saveAndConnect(sessionData);
-  showToast('Knock sent! Waiting for host…');
 }
 
 // ── Save session & inject into active tab ─────────────────────────
@@ -215,14 +197,6 @@ function handleSyncStatus(msg) {
     dot.className = 'status-dot error';
     statusText.textContent = 'Wrong password';
     showToast('Wrong room password', true);
-    leaveRoom();
-  } else if (msg.status === 'must_knock') {
-    if (sessionMsg) sessionMsg.textContent = '🔔 Waiting for host to accept…';
-    statusText.textContent = 'Waiting for host…';
-  } else if (msg.status === 'declined') {
-    dot.className = 'status-dot error';
-    statusText.textContent = 'Request declined';
-    showToast('Host declined your request', true);
     leaveRoom();
   }
 }

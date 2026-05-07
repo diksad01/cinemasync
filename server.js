@@ -420,26 +420,13 @@ io.on('connection', (socket) => {
       rooms[code] = {
         users: {},
         host: socket.id,
-        approved: new Set([socket.id]),
         videoUrl: saved?.videoUrl || null,
         videoType: saved?.videoType || null,
         currentTime: saved?.currentTime || 0,
-        isPlaying: false, // always start paused after restore
-        lastUpdate: Date.now(),
-        password: password || ''
+        isPlaying: false,
+        lastUpdate: Date.now()
       };
       if (saved?.videoUrl) console.log(`[Firestore] Restored room ${code} — ${saved.videoUrl}`);
-    } else {
-      // Validate password for existing rooms
-      if (rooms[code].password && rooms[code].password !== (password || '')) {
-        socket.emit('wrong_password');
-        return;
-      }
-      // Block direct join — must be approved via knock
-      if (!rooms[code].approved.has(socket.id)) {
-        socket.emit('must_knock');
-        return;
-      }
     }
 
     currentRoom = code;
@@ -481,8 +468,6 @@ io.on('connection', (socket) => {
     if (!currentRoom || !rooms[currentRoom]) return;
     if (rooms[currentRoom].host !== socket.id) return; // only host
     io.to(targetId).emit('kicked');
-    // remove from approved so they can't rejoin without knocking
-    rooms[currentRoom].approved.delete(targetId);
   });
 
   socket.on('host_mute', ({ targetId, mute }) => {
@@ -558,23 +543,6 @@ io.on('connection', (socket) => {
     io.to(currentRoom).emit('countdown_start', { from: currentUser });
   });
 
-  // Knock to join
-  socket.on('knock', ({ roomCode, userName, userColor }) => {
-    const code = roomCode.toUpperCase().trim();
-    if (!rooms[code]) {
-      socket.emit('knock_result', { accepted: false, reason: 'Room does not exist' });
-      return;
-    }
-    // Send knock to everyone already in the room
-    socket.to(code).emit('incoming_knock', { name: userName, color: userColor, id: socket.id });
-  });
-
-  socket.on('knock_response', ({ knockerId, accepted }) => {
-    if (accepted && currentRoom && rooms[currentRoom]) {
-      rooms[currentRoom].approved.add(knockerId);
-    }
-    io.to(knockerId).emit('knock_result', { accepted });
-  });
 
   // WebRTC signaling relay
   socket.on('webrtc_offer', ({ offer }) => {
