@@ -29,6 +29,14 @@ document.addEventListener('DOMContentLoaded', () => {
     e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
   });
   document.getElementById('j-code').addEventListener('keydown', e => { if (e.key === 'Enter') knockRoom(); });
+
+  // Wire buttons — replaces inline onclick handlers (CSP compliance)
+  document.getElementById('tab-btn-create').addEventListener('click', () => switchTab('create'));
+  document.getElementById('tab-btn-join').addEventListener('click',   () => switchTab('join'));
+  document.getElementById('btn-create').addEventListener('click', createRoom);
+  document.getElementById('btn-knock').addEventListener('click',  knockRoom);
+  document.getElementById('btn-copy').addEventListener('click',   copyRoomLink);
+  document.getElementById('btn-leave').addEventListener('click',  leaveRoom);
 });
 
 // ── Color pickers ─────────────────────────────────────────────────
