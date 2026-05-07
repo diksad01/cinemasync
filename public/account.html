@@ -273,8 +273,16 @@
 
     // Master account — bypass Firestore entirely
     if (user.uid === MASTER_UID) {
-      renderPlan('master', null, true);
-      document.getElementById('upgrade-btn').style.display = 'none';
+      document.getElementById('plan-icon').textContent  = '★';
+      document.getElementById('plan-icon').style.background = 'rgba(240,192,96,0.25)';
+      document.getElementById('plan-name').textContent  = 'Master';
+      document.getElementById('plan-name').style.color  = 'var(--gold)';
+      document.getElementById('plan-desc').textContent  = 'Owner — all features, never expires';
+      document.getElementById('feature-list').innerHTML = [
+        'All features', 'Never expires', 'File upload', 'Face cam + voice', 'Premium themes'
+      ].map(l => `<div class="feature-item has"><div class="feature-check yes">✓</div>${l}</div>`).join('');
+      const ub = document.getElementById('upgrade-btn');
+      if (ub) ub.style.display = 'none';
       return;
     }
 
