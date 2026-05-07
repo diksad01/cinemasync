@@ -9,6 +9,51 @@ const path = require('path');
 const multer = require('multer');
 const fs = require('fs');
 const os = require('os');
+const admin = require('firebase-admin');
+
+// ── Firebase Admin (room persistence) ────────────────────────────
+let db = null;
+try {
+  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT
+    ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
+    : null;
+  if (serviceAccount) {
+    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+    db = admin.firestore();
+    console.log('[Firestore] Connected — room persistence enabled');
+  } else {
+    console.warn('[Firestore] FIREBASE_SERVICE_ACCOUNT not set — room persistence disabled');
+  }
+} catch (e) {
+  console.warn('[Firestore] Init failed:', e.message);
+}
+
+async function persistRoom(code, room) {
+  if (!db) return;
+  try {
+    await db.collection('rooms').doc(code).set({
+      videoUrl: room.videoUrl || null,
+      videoType: room.videoType || null,
+      currentTime: room.currentTime || 0,
+      isPlaying: room.isPlaying || false,
+      lastUpdate: Date.now()
+    }, { merge: true });
+  } catch (e) { console.warn('[Firestore] persistRoom error:', e.message); }
+}
+
+async function loadRoom(code) {
+  if (!db) return null;
+  try {
+    const doc = await db.collection('rooms').doc(code).get();
+    if (doc.exists) return doc.data();
+  } catch (e) { console.warn('[Firestore] loadRoom error:', e.message); }
+  return null;
+}
+
+async function deleteRoom(code) {
+  if (!db) return;
+  try { await db.collection('rooms').doc(code).delete(); } catch {}
+}
 
 // Store uploaded files per room: roomCode -> { filePath, fileName, mimeType }
 const roomFiles = {};
@@ -353,24 +398,27 @@ io.on('connection', (socket) => {
   let currentUser = null;
   let currentColor = '#f0c060';
 
-  socket.on('join', ({ roomCode, userName, userColor, password }) => {
+  socket.on('join', async ({ roomCode, userName, userColor, password }) => {
     const code = roomCode.toUpperCase().trim();
     currentUser = userName;
     currentColor = userColor || '#f0c060';
 
     // Create room if new — first user becomes the host
     if (!rooms[code]) {
+      // Try to restore from Firestore
+      const saved = await loadRoom(code);
       rooms[code] = {
         users: {},
         host: socket.id,
         approved: new Set([socket.id]),
-        videoUrl: null,
-        videoType: null,
-        currentTime: 0,
-        isPlaying: false,
+        videoUrl: saved?.videoUrl || null,
+        videoType: saved?.videoType || null,
+        currentTime: saved?.currentTime || 0,
+        isPlaying: false, // always start paused after restore
         lastUpdate: Date.now(),
         password: password || ''
       };
+      if (saved?.videoUrl) console.log(`[Firestore] Restored room ${code} — ${saved.videoUrl}`);
     } else {
       // Validate password for existing rooms
       if (rooms[code].password && rooms[code].password !== (password || '')) {
@@ -450,6 +498,7 @@ io.on('connection', (socket) => {
     rooms[currentRoom].currentTime = currentTime;
     rooms[currentRoom].lastUpdate = Date.now();
     socket.to(currentRoom).emit('sync_play', { currentTime, from: socket.id });
+    persistRoom(currentRoom, rooms[currentRoom]);
   });
 
   socket.on('sync_pause', ({ currentTime }) => {
@@ -458,6 +507,7 @@ io.on('connection', (socket) => {
     rooms[currentRoom].currentTime = currentTime;
     rooms[currentRoom].lastUpdate = Date.now();
     socket.to(currentRoom).emit('sync_pause', { currentTime, from: socket.id });
+    persistRoom(currentRoom, rooms[currentRoom]);
   });
 
   socket.on('sync_seek', ({ currentTime }) => {
@@ -465,6 +515,7 @@ io.on('connection', (socket) => {
     rooms[currentRoom].currentTime = currentTime;
     rooms[currentRoom].lastUpdate = Date.now();
     socket.to(currentRoom).emit('sync_seek', { currentTime, from: socket.id });
+    persistRoom(currentRoom, rooms[currentRoom]);
   });
 
   socket.on('sync_url', ({ url, videoType }) => {
@@ -474,6 +525,7 @@ io.on('connection', (socket) => {
     rooms[currentRoom].currentTime = 0;
     rooms[currentRoom].isPlaying = false;
     socket.to(currentRoom).emit('sync_url', { url, videoType, from: socket.id });
+    persistRoom(currentRoom, rooms[currentRoom]);
   });
 
   socket.on('sync_buffer', ({ buffering }) => {
@@ -560,6 +612,7 @@ io.on('connection', (socket) => {
 
     // Clean up empty rooms
     if (Object.keys(rooms[currentRoom].users).length === 0) {
+      deleteRoom(currentRoom);
       delete rooms[currentRoom];
     }
   });
