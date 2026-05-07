@@ -212,18 +212,22 @@
     appId: "1:62892827078:web:e2834805a39b73f319d2c7"
   };
 
+  const MASTER_UID = 'k2t053MSV8OXmzKUcs83wMNu8nX2';
+
   const PLAN_META = {
     free:    { icon:'✨', name:'Free',          desc:'Basic watch parties',              color:'rgba(255,255,255,0.15)' },
     solo:    { icon:'💛', name:'Solo',          desc:'File upload, queue, 3 themes',     color:'rgba(240,192,96,0.2)' },
     couples: { icon:'❤️', name:'Couples',       desc:'Face cam, voice, 2 viewers',       color:'rgba(255,107,157,0.2)' },
-    team:    { icon:'👥', name:'Team',          desc:'Up to 10 viewers, all features',   color:'rgba(0,212,255,0.2)' }
+    team:    { icon:'👥', name:'Team',          desc:'Up to 10 viewers, all features',   color:'rgba(0,212,255,0.2)' },
+    master:  { icon:'★',  name:'Master',        desc:'Owner — all features, never expires', color:'rgba(240,192,96,0.25)' }
   };
 
   const PLAN_FEATURES = {
     free:    [{ label:'Watch parties',     has:true },  { label:'Chat & reactions',   has:true },  { label:'File upload',        has:false }, { label:'Face cam + voice',   has:false }, { label:'Premium themes',     has:false }],
     solo:    [{ label:'Watch parties',     has:true },  { label:'Chat & reactions',   has:true },  { label:'File upload',        has:true  }, { label:'Face cam + voice',   has:false }, { label:'Premium themes',     has:true  }],
     couples: [{ label:'Watch parties',     has:true },  { label:'Chat & reactions',   has:true },  { label:'File upload',        has:true  }, { label:'Face cam + voice',   has:true  }, { label:'Premium themes',     has:true  }],
-    team:    [{ label:'Up to 10 viewers',  has:true },  { label:'Chat & reactions',   has:true },  { label:'File upload',        has:true  }, { label:'Face cam + voice',   has:true  }, { label:'Premium themes',     has:true  }]
+    team:    [{ label:'Up to 10 viewers',  has:true },  { label:'Chat & reactions',   has:true },  { label:'File upload',        has:true  }, { label:'Face cam + voice',   has:true  }, { label:'Premium themes',     has:true  }],
+    master:  [{ label:'All features',      has:true },  { label:'Never expires',       has:true },  { label:'File upload',        has:true  }, { label:'Face cam + voice',   has:true  }, { label:'Premium themes',     has:true  }]
   };
 
   firebase.initializeApp(FIREBASE_CONFIG);
@@ -266,6 +270,13 @@
     const provider = user.providerData[0]?.providerId || 'email';
     const providerLabels = { 'password':'Email & Password', 'google.com':'Google' };
     document.getElementById('info-provider').textContent = providerLabels[provider] || provider;
+
+    // Master account — bypass Firestore entirely
+    if (user.uid === MASTER_UID) {
+      renderPlan('master', null, true);
+      document.getElementById('upgrade-btn').style.display = 'none';
+      return;
+    }
 
     // Plan from Firestore
     let tier = 'free', expiresAt = null, active = false;

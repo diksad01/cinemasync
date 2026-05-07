@@ -2793,6 +2793,7 @@ const FIREBASE_CONFIG = {
 let fbApp, fbAuth, fbDb;
 let currentUser = null;
 let userPlan = 'free';
+let userIsMaster = false;
 
 function initFirebase() {
   try {
@@ -2805,10 +2806,11 @@ function initFirebase() {
   }
 }
 
+const MASTER_UID = 'k2t053MSV8OXmzKUcs83wMNu8nX2';
+
 async function onAuthStateChanged(user) {
   currentUser = user;
   if (user) {
-    console.log('%c[SomniWatch] Your UID: ' + user.uid, 'color:#f0c060;font-weight:bold;font-size:14px');
     await loadUserPlan(user);
     updateAccountPill(user);
   } else {
@@ -2818,6 +2820,13 @@ async function onAuthStateChanged(user) {
 }
 
 async function loadUserPlan(user) {
+  // Master account — always team, all features, never expires
+  if (user.uid === MASTER_UID) {
+    userPlan = 'team';
+    userIsMaster = true;
+    return;
+  }
+  userIsMaster = false;
   try {
     const doc = await fbDb.collection('users').doc(user.uid).get();
     if (doc.exists) {
@@ -2851,7 +2860,8 @@ function updateAccountPill(user) {
     apEmail.textContent = email.split('@')[0];
     apAvatar.textContent = (user.displayName || email)[0].toUpperCase();
     const planLabels = { free:'Free', solo:'Solo 💛', couples:'Couples ❤️', team:'Team 👥' };
-    apPlan.textContent = planLabels[userPlan] || 'Free';
+    apPlan.textContent = userIsMaster ? '★ Master' : (planLabels[userPlan] || 'Free');
+    if (userIsMaster) apPlan.style.color = 'var(--gold)';
   } else {
     signInBtn.style.display = 'flex';
     accountPill.classList.remove('show');
