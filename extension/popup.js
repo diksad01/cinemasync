@@ -219,6 +219,11 @@ function handleSyncStatus(msg) {
   } else if (msg.status === 'must_knock') {
     if (sessionMsg) sessionMsg.textContent = '🔔 Waiting for host to accept…';
     statusText.textContent = 'Waiting for host…';
+  } else if (msg.status === 'declined') {
+    dot.className = 'status-dot error';
+    statusText.textContent = 'Request declined';
+    showToast('Host declined your request', true);
+    leaveRoom();
   }
 }
 

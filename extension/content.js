@@ -131,8 +131,30 @@
     });
 
     socket.on('must_knock', () => {
-      setOverlayStatus('Must knock first', 'Host needs to accept you', '#f0c060');
+      // Server requires a knock — send it now
+      setOverlayStatus('SomniWatch 🟡', 'Knocking… waiting for host', '#f0c060');
       chrome.runtime.sendMessage({ type: 'SYNC_STATUS', status: 'must_knock' });
+      socket.emit('knock', { roomCode, userName, userColor });
+    });
+
+    let knockRetries = 0;
+    socket.on('knock_result', ({ accepted, reason }) => {
+      if (accepted) {
+        knockRetries = 0;
+        socket.emit('join', { roomCode, userName, userColor, password: data.password || '' });
+        setOverlayStatus('SomniWatch 🟢', `Joined · Room: ${roomCode}`, '#4ade80');
+      } else if (reason === 'Room does not exist' && knockRetries < 3) {
+        // Host may not have joined yet — retry after 2s
+        knockRetries++;
+        setOverlayStatus('SomniWatch 🟡', `Room not ready, retrying (${knockRetries}/3)…`, '#f0c060');
+        setTimeout(() => {
+          socket.emit('knock', { roomCode, userName, userColor });
+        }, 2000);
+      } else {
+        knockRetries = 0;
+        setOverlayStatus('Declined', reason || 'Host declined your request', '#ff6060');
+        chrome.runtime.sendMessage({ type: 'SYNC_STATUS', status: 'declined' });
+      }
     });
 
     socket.on('kicked', () => {
