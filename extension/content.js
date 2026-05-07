@@ -224,6 +224,78 @@
       if (!videoEl.paused) socket.emit('sync_play', { currentTime: videoEl.currentTime });
       else socket.emit('sync_pause', { currentTime: videoEl.currentTime });
     });
+
+    socket.on('incoming_knock', ({ name, color, id }) => {
+      showKnockAlert(name, color, id);
+    });
+  }
+
+  // ── Knock alert UI ───────────────────────────────────────────────
+  function showKnockAlert(name, color, knockerId) {
+    const existing = document.getElementById('sw-knock-' + knockerId);
+    if (existing) return;
+
+    const alert = document.createElement('div');
+    alert.id = 'sw-knock-' + knockerId;
+    alert.style.cssText = `
+      position: fixed;
+      bottom: 140px;
+      right: 20px;
+      z-index: 9999999;
+      background: rgba(6,8,15,0.96);
+      border: 1px solid rgba(240,192,96,0.4);
+      border-radius: 14px;
+      padding: 14px 16px;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: 13px;
+      color: #e8eaf0;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+      min-width: 240px;
+      backdrop-filter: blur(12px);
+      animation: swSlideIn 0.3s ease;
+    `;
+    alert.innerHTML = `
+      <style>
+        @keyframes swSlideIn { from { opacity:0; transform:translateY(12px) } to { opacity:1; transform:translateY(0) } }
+      </style>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <div style="width:28px;height:28px;border-radius:50%;background:${color || '#f0c060'};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#06080f;flex-shrink:0">
+          ${(name || '?')[0].toUpperCase()}
+        </div>
+        <div>
+          <div style="font-weight:700;color:#f0c060">🔔 ${name} wants to join</div>
+          <div style="font-size:11px;color:#7a8199">Accept to let them in</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button id="sw-accept-${knockerId}" style="flex:1;background:linear-gradient(135deg,#f0c060,#f0a03c);border:none;border-radius:8px;color:#06080f;font-weight:700;font-size:12px;padding:8px;cursor:pointer">
+          Accept
+        </button>
+        <button id="sw-decline-${knockerId}" style="flex:1;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#e8eaf0;font-size:12px;padding:8px;cursor:pointer">
+          Decline
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(alert);
+
+    document.getElementById('sw-accept-' + knockerId).onclick = () => {
+      socket.emit('knock_response', { knockerId, accepted: true });
+      alert.remove();
+      setOverlayStatus('SomniWatch 🟢', `${name} accepted · Room: ${roomCode}`, '#4ade80');
+    };
+    document.getElementById('sw-decline-' + knockerId).onclick = () => {
+      socket.emit('knock_response', { knockerId, accepted: false });
+      alert.remove();
+    };
+
+    // Auto-dismiss after 30 seconds
+    setTimeout(() => {
+      if (document.getElementById('sw-knock-' + knockerId)) {
+        socket.emit('knock_response', { knockerId, accepted: false });
+        alert.remove();
+      }
+    }, 30000);
   }
 
   // ── Attach video listeners ───────────────────────────────────────

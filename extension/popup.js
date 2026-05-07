@@ -148,11 +148,19 @@ function leaveRoom() {
 function copyRoomLink() {
   const code = document.getElementById('s-room').textContent;
   const url = `https://watch.somniread.com/?room=${code}`;
-  navigator.clipboard.writeText(url).then(() => {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
     showToast('Room link copied!');
-  }).catch(() => {
-    showToast('Could not copy — code: ' + code);
-  });
+  } catch (e) {
+    showToast('Code: ' + code);
+  }
 }
 
 // ── Views ─────────────────────────────────────────────────────────
