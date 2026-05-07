@@ -133,15 +133,20 @@ function saveAndConnect(data) {
   });
 }
 
-// ── Leave Room ────────────────────────────────────────────────────
+// ── Leave Room ────────────────────────────────────────────
 function leaveRoom() {
+  // Clear storage immediately so popup never gets stuck
+  chrome.storage.local.remove(['roomCode', 'userName', 'userColor', 'password', 'serverUrl']);
+  showConnectView();
+  // Best-effort disconnect content script — don't wait for response
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (tabs[0]) {
-      chrome.tabs.sendMessage(tabs[0].id, { type: 'SW_DISCONNECT' });
+      chrome.tabs.sendMessage(tabs[0].id, { type: 'SW_DISCONNECT' }, () => {
+        // Ignore chrome.runtime.lastError — tab may not have content script
+        void chrome.runtime.lastError;
+      });
     }
   });
-  chrome.storage.local.remove(['roomCode', 'userName', 'userColor', 'password']);
-  showConnectView();
 }
 
 // ── Copy room link ────────────────────────────────────────────────

@@ -102,10 +102,16 @@
     userColor = data.userColor || '#f0c060';
     const serverUrl = data.serverUrl || SERVER_URL;
 
-    if (socket) socket.disconnect();
+    if (socket) { try { socket.disconnect(); } catch(e) {} socket = null; }
 
+    if (typeof io === 'undefined') {
+      setOverlayStatus('Error', 'Socket.io not loaded', '#ff6060');
+      return;
+    }
+
+    try {
     // io is injected via socket.io.min.js
-    socket = io(serverUrl, { transports: ['websocket'], reconnectionDelay: 2000 });
+    socket = io(serverUrl, { transports: ['websocket'], reconnectionDelay: 2000, timeout: 8000 });
 
     socket.on('connect', () => {
       connected = true;
@@ -228,6 +234,10 @@
     socket.on('incoming_knock', ({ name, color, id }) => {
       showKnockAlert(name, color, id);
     });
+
+    } catch(e) {
+      setOverlayStatus('Error', 'Failed to connect: ' + e.message, '#ff6060');
+    }
   }
 
   // ── Knock alert UI ───────────────────────────────────────────────
@@ -375,9 +385,12 @@
       });
     }
     if (msg.type === 'SW_DISCONNECT') {
-      if (socket) socket.disconnect();
-      if (overlay) { overlay.remove(); overlay = null; }
+      try { if (socket) { socket.disconnect(); socket = null; } } catch(e) {}
+      if (overlay) { try { overlay.remove(); } catch(e) {} overlay = null; }
+      // Remove any knock alerts
+      document.querySelectorAll('[id^="sw-knock-"]').forEach(el => el.remove());
       connected = false;
+      roomCode = null;
     }
   });
 
