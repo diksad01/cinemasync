@@ -2808,6 +2808,7 @@ function initFirebase() {
 async function onAuthStateChanged(user) {
   currentUser = user;
   if (user) {
+    console.log('%c[SomniWatch] Your UID: ' + user.uid, 'color:#f0c060;font-weight:bold;font-size:14px');
     await loadUserPlan(user);
     updateAccountPill(user);
   } else {
