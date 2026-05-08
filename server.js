@@ -575,7 +575,6 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     if (!currentRoom || !rooms[currentRoom]) return;
     delete rooms[currentRoom].users[socket.id];
-    rooms[currentRoom].approved.delete(socket.id);
 
     io.to(currentRoom).emit('user_left', { name: currentUser, id: socket.id });
     io.to(currentRoom).emit('room_users', Object.values(rooms[currentRoom].users));
