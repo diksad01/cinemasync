@@ -407,6 +407,8 @@ io.on('connection', (socket) => {
   let currentRoom = null;
   let currentUser = null;
   let currentColor = '#f0c060';
+  const ip = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
+  console.log(`[SOCKET] New connection from ${ip} (${socket.id})`);
 
   socket.on('join', async ({ roomCode, userName, userColor, password }) => {
     const code = roomCode.toUpperCase().trim();
