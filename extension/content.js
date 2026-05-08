@@ -1,12 +1,11 @@
-// SomniWatch Content Script
-// Injected into YouTube, Dailymotion, Vimeo, Twitch
-// Hooks the video element and syncs with the SomniWatch server via Socket.io
+// SomniWatch Content Script — Teleparty-style sync + chat sidebar
+// Injected into YouTube, Dailymotion, Vimeo, Twitch, Netflix, etc.
 
 (function () {
   'use strict';
 
   const SERVER_URL = 'https://web-production-0cbba.up.railway.app';
-  const SEEK_THRESHOLD = 2.5; // seconds difference before forcing a seek
+  const SEEK_THRESHOLD = 2.5;
   const DEBOUNCE_MS = 800;
 
   let socket = null;
@@ -19,6 +18,7 @@
   let debounceTimer = null;
   let bufferEmitTimer = null;
   let overlay = null;
+  let sidebar = null;
   let reconnectTimer = null;
 
   // ── Find video element ───────────────────────────────────────────
@@ -41,55 +41,115 @@
     obs.observe(document.body, { childList: true, subtree: true });
   }
 
-  // ── Overlay UI ───────────────────────────────────────────────────
-  function createOverlay() {
-    if (overlay) return;
-    overlay = document.createElement('div');
-    overlay.id = 'somniwatch-overlay';
-    overlay.style.cssText = `
-      position: fixed;
-      bottom: 80px;
-      right: 20px;
-      z-index: 999999;
-      background: rgba(6,8,15,0.92);
-      border: 1px solid rgba(240,192,96,0.3);
-      border-radius: 12px;
-      padding: 10px 14px;
-      font-family: 'DM Sans', system-ui, sans-serif;
-      font-size: 13px;
-      color: #e8eaf0;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-      min-width: 220px;
-      backdrop-filter: blur(10px);
-      transition: opacity 0.3s;
-    `;
-    overlay.innerHTML = `
-      <div id="sw-dot" style="width:8px;height:8px;border-radius:50%;background:#f0c060;flex-shrink:0;animation:swPulse 2s infinite"></div>
-      <div>
-        <div id="sw-status" style="font-weight:600;color:#f0c060">SomniWatch</div>
-        <div id="sw-sub" style="font-size:11px;color:#7a8199">Connecting…</div>
-      </div>
-      <button id="sw-close" style="margin-left:auto;background:none;border:none;color:#7a8199;cursor:pointer;font-size:16px;padding:0 2px;line-height:1">✕</button>
+  // ── Chat Sidebar UI ─────────────────────────────────────────────
+  function createSidebar() {
+    if (sidebar) return;
+    sidebar = document.createElement('div');
+    sidebar.id = 'sw-sidebar';
+    sidebar.innerHTML = `
       <style>
-        @keyframes swPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        #sw-sidebar { position:fixed; top:0; right:0; width:340px; height:100vh; z-index:9999999;
+          background:rgba(6,8,15,0.97); border-left:1px solid rgba(240,192,96,0.2);
+          font-family:'DM Sans',system-ui,sans-serif; display:flex; flex-direction:column;
+          transition:transform 0.3s cubic-bezier(0.4,0,0.2,1); backdrop-filter:blur(16px); }
+        #sw-sidebar.collapsed { transform:translateX(300px); }
+        #sw-header { padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.07);
+          display:flex; align-items:center; gap:10px; flex-shrink:0; }
+        #sw-header-dot { width:8px; height:8px; border-radius:50%; background:#f0c060; }
+        #sw-header-title { font-weight:700; font-size:14px; color:#f0c060; }
+        #sw-header-sub { font-size:11px; color:#7a8199; }
+        #sw-toggle { margin-left:auto; background:none; border:none; color:#7a8199; cursor:pointer;
+          font-size:18px; padding:4px 6px; transition:0.2s; }
+        #sw-toggle:hover { color:#e8eaf0; }
+        #sw-users { padding:8px 14px; border-bottom:1px solid rgba(255,255,255,0.05);
+          font-size:11px; color:#7a8199; display:flex; gap:6px; flex-wrap:wrap; flex-shrink:0; }
+        .sw-user-pill { background:rgba(240,192,96,0.12); border:1px solid rgba(240,192,96,0.2);
+          border-radius:100px; padding:2px 10px; font-size:11px; color:#e8eaf0; white-space:nowrap; }
+        #sw-messages { flex:1; overflow-y:auto; padding:10px 14px; display:flex; flex-direction:column; gap:6px; }
+        .sw-msg { max-width:85%; padding:6px 10px; border-radius:10px; font-size:12.5px; line-height:1.4; word-break:break-word; }
+        .sw-msg-other { background:rgba(255,255,255,0.06); color:#e8eaf0; align-self:flex-start; border-bottom-left-radius:2px; }
+        .sw-msg-own { background:rgba(240,192,96,0.18); color:#e8eaf0; align-self:flex-end; border-bottom-right-radius:2px; }
+        .sw-msg-system { background:none; color:#7a8199; font-size:11px; align-self:center; font-style:italic; }
+        .sw-msg-name { font-size:10px; font-weight:600; margin-bottom:2px; }
+        #sw-input-row { padding:10px 14px; border-top:1px solid rgba(255,255,255,0.07);
+          display:flex; gap:8px; flex-shrink:0; }
+        #sw-chat-input { flex:1; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);
+          border-radius:8px; color:#e8eaf0; font-family:inherit; font-size:13px; padding:8px 12px;
+          outline:none; transition:0.2s; }
+        #sw-chat-input:focus { border-color:rgba(240,192,96,0.4); }
+        #sw-chat-input::placeholder { color:#555; }
+        #sw-send-btn { background:linear-gradient(135deg,#f0c060,#f0a03c); border:none; border-radius:8px;
+          color:#06080f; font-weight:700; font-size:13px; padding:8px 14px; cursor:pointer; transition:0.2s; }
+        #sw-send-btn:hover { opacity:0.85; }
+        #sw-sidebar::-webkit-scrollbar { width:4px; }
+        #sw-sidebar::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:4px; }
+        #sw-messages::-webkit-scrollbar { width:4px; }
+        #sw-messages::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:4px; }
       </style>
+      <div id="sw-header">
+        <div id="sw-header-dot"></div>
+        <div>
+          <div id="sw-header-title">SomniWatch</div>
+          <div id="sw-header-sub">Connecting…</div>
+        </div>
+        <button id="sw-toggle" title="Toggle sidebar">◀</button>
+      </div>
+      <div id="sw-users"></div>
+      <div id="sw-messages"></div>
+      <div id="sw-input-row">
+        <input id="sw-chat-input" type="text" placeholder="Type a message…" maxlength="300" autocomplete="off" />
+        <button id="sw-send-btn">Send</button>
+      </div>
     `;
-    document.body.appendChild(overlay);
-    document.getElementById('sw-close').onclick = () => {
-      overlay.style.opacity = '0';
-      setTimeout(() => overlay.remove(), 300);
-      overlay = null;
+    document.body.appendChild(sidebar);
+
+    // Toggle collapse
+    document.getElementById('sw-toggle').onclick = () => {
+      sidebar.classList.toggle('collapsed');
+      document.getElementById('sw-toggle').textContent = sidebar.classList.contains('collapsed') ? '▶' : '◀';
     };
+
+    // Send chat
+    const input = document.getElementById('sw-chat-input');
+    const send = () => {
+      const msg = input.value.trim();
+      if (!msg || !socket || !connected) return;
+      socket.emit('chat_msg', { message: msg, userName });
+      input.value = '';
+    };
+    document.getElementById('sw-send-btn').onclick = send;
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') send(); e.stopPropagation(); });
+    input.addEventListener('keyup', e => e.stopPropagation());
+    input.addEventListener('keypress', e => e.stopPropagation());
+  }
+
+  function addChatMessage(name, text, color, isOwn, isSystem) {
+    const container = document.getElementById('sw-messages');
+    if (!container) return;
+    const div = document.createElement('div');
+    if (isSystem) {
+      div.className = 'sw-msg sw-msg-system';
+      div.textContent = text;
+    } else {
+      div.className = 'sw-msg ' + (isOwn ? 'sw-msg-own' : 'sw-msg-other');
+      div.innerHTML = `<div class="sw-msg-name" style="color:${color || '#f0c060'}">${name}</div>${text}`;
+    }
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function updateUsersUI(users) {
+    const el = document.getElementById('sw-users');
+    if (!el || !users) return;
+    el.innerHTML = users.map(u =>
+      `<span class="sw-user-pill" style="border-color:${u.color || '#f0c060'}30">${u.name}</span>`
+    ).join('');
   }
 
   function setOverlayStatus(status, sub, color) {
-    if (!overlay) return;
-    const dot = document.getElementById('sw-dot');
-    const st = document.getElementById('sw-status');
-    const sb = document.getElementById('sw-sub');
+    const dot = document.getElementById('sw-header-dot');
+    const st = document.getElementById('sw-header-title');
+    const sb = document.getElementById('sw-header-sub');
     if (dot) dot.style.background = color || '#f0c060';
     if (st) st.textContent = status;
     if (sb) sb.textContent = sub || '';
@@ -182,13 +242,20 @@
     });
 
     socket.on('room_state', ({ videoUrl, currentTime, isPlaying, users }) => {
+      updateUsersUI(users);
+      // If room has a different video URL, redirect to it
+      if (videoUrl && !videoUrl.startsWith('/')) {
+        const cleanRoomUrl = videoUrl.replace(/[?&]sw_room=[^&]+/, '');
+        const cleanPageUrl = location.href.replace(/[?&]sw_room=[^&]+/, '');
+        if (cleanRoomUrl !== cleanPageUrl && !cleanPageUrl.includes(cleanRoomUrl)) {
+          addChatMessage(null, 'Redirecting to room video…', null, false, true);
+          const sep = videoUrl.includes('?') ? '&' : '?';
+          window.location.href = cleanRoomUrl + sep + 'sw_room=' + roomCode;
+          return;
+        }
+      }
       if (!videoEl) return;
       isSyncing = true;
-      // For YouTube: check if current video matches
-      const currentPageUrl = location.href;
-      if (videoUrl && videoUrl !== currentPageUrl) {
-        setOverlayStatus('SomniWatch 🟡', 'Partner watching different video', '#f0c060');
-      }
       if (currentTime && Math.abs(videoEl.currentTime - currentTime) > SEEK_THRESHOLD) {
         videoEl.currentTime = currentTime;
       }
@@ -201,106 +268,54 @@
         setTimeout(() => { isSyncing = false; }, 300);
       }
       const count = users ? users.length : '?';
-      setOverlayStatus('SomniWatch 🟢', `${count} watching · Room: ${roomCode}`, '#4ade80');
+      setOverlayStatus('SomniWatch', `${count} watching · Room: ${roomCode}`, '#4ade80');
+    });
+
+    // Chat messages
+    socket.on('chat_msg', ({ message, userName: name, color }) => {
+      const isOwn = name === userName;
+      addChatMessage(name, message, color, isOwn);
     });
 
     socket.on('user_joined', ({ name }) => {
-      setOverlayStatus('SomniWatch 🟢', `${name} joined · Room: ${roomCode}`, '#4ade80');
+      addChatMessage(null, `${name} joined`, null, false, true);
+      setOverlayStatus('SomniWatch', `${name} joined · Room: ${roomCode}`, '#4ade80');
     });
 
     socket.on('user_left', ({ name }) => {
-      setOverlayStatus('SomniWatch 🟢', `${name} left · Room: ${roomCode}`, '#4ade80');
+      addChatMessage(null, `${name} left`, null, false, true);
     });
 
     socket.on('room_users', (users) => {
+      updateUsersUI(users);
       const count = users ? users.length : '?';
-      setOverlayStatus('SomniWatch 🟢', `${count} watching · Room: ${roomCode}`, '#4ade80');
+      setOverlayStatus('SomniWatch', `${count} watching · Room: ${roomCode}`, '#4ade80');
+    });
+
+    // When host changes video, redirect to new URL
+    socket.on('sync_url', ({ url }) => {
+      if (!url || url.startsWith('/')) return;
+      const cleanUrl = url.replace(/[?&]sw_room=[^&]+/, '');
+      const cleanPage = location.href.replace(/[?&]sw_room=[^&]+/, '');
+      if (cleanUrl !== cleanPage && !cleanPage.includes(cleanUrl)) {
+        addChatMessage(null, 'Host changed video — redirecting…', null, false, true);
+        const sep = cleanUrl.includes('?') ? '&' : '?';
+        window.location.href = cleanUrl + sep + 'sw_room=' + roomCode;
+      }
     });
 
     socket.on('request_state_sync', () => {
       if (!videoEl) return;
-      const url = location.href;
+      const url = location.href.replace(/[?&]sw_room=[^&]+/, '');
       socket.emit('sync_url', { url, videoType: 'iframe' });
       socket.emit('sync_seek', { currentTime: videoEl.currentTime });
       if (!videoEl.paused) socket.emit('sync_play', { currentTime: videoEl.currentTime });
       else socket.emit('sync_pause', { currentTime: videoEl.currentTime });
     });
 
-    socket.on('incoming_knock', ({ name, color, id }) => {
-      showKnockAlert(name, color, id);
-    });
-
     } catch(e) {
       setOverlayStatus('Error', 'Failed to connect: ' + e.message, '#ff6060');
     }
-  }
-
-  // ── Knock alert UI ───────────────────────────────────────────────
-  function showKnockAlert(name, color, knockerId) {
-    const existing = document.getElementById('sw-knock-' + knockerId);
-    if (existing) return;
-
-    const alert = document.createElement('div');
-    alert.id = 'sw-knock-' + knockerId;
-    alert.style.cssText = `
-      position: fixed;
-      bottom: 140px;
-      right: 20px;
-      z-index: 9999999;
-      background: rgba(6,8,15,0.96);
-      border: 1px solid rgba(240,192,96,0.4);
-      border-radius: 14px;
-      padding: 14px 16px;
-      font-family: 'DM Sans', system-ui, sans-serif;
-      font-size: 13px;
-      color: #e8eaf0;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-      min-width: 240px;
-      backdrop-filter: blur(12px);
-      animation: swSlideIn 0.3s ease;
-    `;
-    alert.innerHTML = `
-      <style>
-        @keyframes swSlideIn { from { opacity:0; transform:translateY(12px) } to { opacity:1; transform:translateY(0) } }
-      </style>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <div style="width:28px;height:28px;border-radius:50%;background:${color || '#f0c060'};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#06080f;flex-shrink:0">
-          ${(name || '?')[0].toUpperCase()}
-        </div>
-        <div>
-          <div style="font-weight:700;color:#f0c060">🔔 ${name} wants to join</div>
-          <div style="font-size:11px;color:#7a8199">Accept to let them in</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button id="sw-accept-${knockerId}" style="flex:1;background:linear-gradient(135deg,#f0c060,#f0a03c);border:none;border-radius:8px;color:#06080f;font-weight:700;font-size:12px;padding:8px;cursor:pointer">
-          Accept
-        </button>
-        <button id="sw-decline-${knockerId}" style="flex:1;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#e8eaf0;font-size:12px;padding:8px;cursor:pointer">
-          Decline
-        </button>
-      </div>
-    `;
-
-    document.body.appendChild(alert);
-
-    document.getElementById('sw-accept-' + knockerId).onclick = () => {
-      socket.emit('knock_response', { knockerId, accepted: true });
-      alert.remove();
-      setOverlayStatus('SomniWatch 🟢', `${name} accepted · Room: ${roomCode}`, '#4ade80');
-    };
-    document.getElementById('sw-decline-' + knockerId).onclick = () => {
-      socket.emit('knock_response', { knockerId, accepted: false });
-      alert.remove();
-    };
-
-    // Auto-dismiss after 30 seconds
-    setTimeout(() => {
-      if (document.getElementById('sw-knock-' + knockerId)) {
-        socket.emit('knock_response', { knockerId, accepted: false });
-        alert.remove();
-      }
-    }, 30000);
   }
 
   // ── Attach video listeners ───────────────────────────────────────
@@ -350,40 +365,51 @@
     });
   }
 
-  // ── Init ─────────────────────────────────────────────────────────
-  chrome.runtime.sendMessage({ type: 'GET_SESSION' }, (data) => {
-    if (!data || !data.roomCode) return; // not in a session
-
-    createOverlay();
+  // ── Start session ──────────────────────────────────────────────
+  function startSession(data) {
+    createSidebar();
     setOverlayStatus('SomniWatch', 'Finding video…', '#f0c060');
-
     connect(data);
-
     waitForVideo((vid) => {
       attachVideoListeners(vid);
-      setOverlayStatus('SomniWatch 🟢', `Syncing · Room: ${roomCode}`, '#4ade80');
-      // Broadcast current page URL as the room video
+      setOverlayStatus('SomniWatch', `Syncing · Room: ${roomCode}`, '#4ade80');
+      // Broadcast current page URL as the room video (strip sw_room param)
+      const cleanUrl = location.href.replace(/[?&]sw_room=[^&]+/, '');
       if (socket && connected) {
-        socket.emit('sync_url', { url: location.href, videoType: 'iframe' });
+        socket.emit('sync_url', { url: cleanUrl, videoType: 'iframe' });
       }
     });
-  });
+  }
+
+  // ── Auto-join from URL param ?sw_room=CODE ─────────────────────
+  const urlParams = new URLSearchParams(location.search);
+  const swRoom = urlParams.get('sw_room');
+  if (swRoom && swRoom.length === 6) {
+    // Auto-join: get user name from storage or prompt
+    chrome.storage.local.get(['userName', 'userColor'], (stored) => {
+      const name = stored.userName || 'Guest';
+      const color = stored.userColor || '#f0c060';
+      const data = { roomCode: swRoom.toUpperCase(), userName: name, userColor: color, serverUrl: SERVER_URL };
+      // Save session so popup shows connected state
+      chrome.storage.local.set({ roomCode: data.roomCode, userName: name, userColor: color, serverUrl: SERVER_URL });
+      startSession(data);
+    });
+  } else {
+    // ── Normal init: check for existing session ────────────────────
+    chrome.runtime.sendMessage({ type: 'GET_SESSION' }, (data) => {
+      if (!data || !data.roomCode) return;
+      startSession(data);
+    });
+  }
 
   // Listen for connect/disconnect commands from popup
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === 'SW_CONNECT') {
-      createOverlay();
-      connect(msg.data);
-      waitForVideo((vid) => {
-        attachVideoListeners(vid);
-        if (socket) socket.emit('sync_url', { url: location.href, videoType: 'iframe' });
-      });
+      startSession(msg.data);
     }
     if (msg.type === 'SW_DISCONNECT') {
       try { if (socket) { socket.disconnect(); socket = null; } } catch(e) {}
-      if (overlay) { try { overlay.remove(); } catch(e) {} overlay = null; }
-      // Remove any knock alerts
-      document.querySelectorAll('[id^="sw-knock-"]').forEach(el => el.remove());
+      if (sidebar) { try { sidebar.remove(); } catch(e) {} sidebar = null; }
       connected = false;
       roomCode = null;
     }

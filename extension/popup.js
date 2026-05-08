@@ -141,7 +141,7 @@ function leaveRoom() {
 // ── Copy room link ────────────────────────────────────────────────
 function copyRoomLink() {
   const code = document.getElementById('s-room').textContent;
-  const url = `https://watch.somniread.com/?room=${code}`;
+  const url = `https://watch.somniread.com/join?room=${code}`;
   try {
     const ta = document.createElement('textarea');
     ta.value = url;

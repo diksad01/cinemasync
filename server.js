@@ -397,6 +397,30 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
+// API: Get room info (video URL) for join redirect
+app.get('/api/room/:code', (req, res) => {
+  const code = req.params.code.toUpperCase().trim();
+  const room = rooms[code];
+  if (!room) return res.status(404).json({ error: 'Room not found' });
+  res.json({ videoUrl: room.videoUrl, videoType: room.videoType, users: Object.keys(room.users).length });
+});
+
+// Join redirect: /join?room=CODE → redirects to the video URL with ?sw_room=CODE appended
+app.get('/join', async (req, res) => {
+  const code = (req.query.room || '').toUpperCase().trim();
+  if (!code || code.length !== 6) {
+    return res.redirect('/?room=' + code);
+  }
+  const room = rooms[code];
+  if (room && room.videoUrl && !room.videoUrl.startsWith('/')) {
+    // Append sw_room param to the video URL so the extension auto-joins
+    const sep = room.videoUrl.includes('?') ? '&' : '?';
+    return res.redirect(room.videoUrl + sep + 'sw_room=' + code);
+  }
+  // Fallback: send to web app
+  res.redirect('/?room=' + code);
+});
+
 // Serve frontend for all other routes
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
