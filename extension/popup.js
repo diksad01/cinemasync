@@ -129,8 +129,9 @@ function leaveRoom() {
   chrome.storage.local.remove(['roomCode', 'userName', 'userColor', 'password', 'serverUrl']);
   showConnectView();
   // Disconnect ALL tabs that might have the content script running
-  chrome.tabs.query({ url: ['*://*.youtube.com/*', '*://*.dailymotion.com/*', '*://*.vimeo.com/*', '*://*.twitch.tv/*'] }, (tabs) => {
+  chrome.tabs.query({}, (tabs) => {
     (tabs || []).forEach(tab => {
+      if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) return;
       chrome.tabs.sendMessage(tab.id, { type: 'SW_DISCONNECT' }, () => {
         void chrome.runtime.lastError;
       });
