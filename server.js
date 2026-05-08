@@ -412,6 +412,8 @@ io.on('connection', (socket) => {
 
   socket.on('join', async ({ roomCode, userName, userColor, password }) => {
     const code = roomCode.toUpperCase().trim();
+    // Temp: block known stale ghost room
+    if (code === 'SH2YRV') { console.log(`[BLOCKED] Rejected stale ghost room ${code} from ${ip}`); return; }
     currentUser = userName;
     currentColor = userColor || '#f0c060';
 
