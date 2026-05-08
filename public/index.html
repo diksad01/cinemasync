@@ -1383,25 +1383,25 @@ function initSocket() {
     updateUsersUI();
     if (videoUrl) {
       loadVideo(videoUrl, videoType, false);
+      // Only seek/play the <video> element if it's not an iframe/YouTube embed
       const vid = document.getElementById('video-player');
-      isSyncingFromRemote = true;
-
-      const applyState = () => {
-        vid.currentTime = currentTime;
-        if (isPlaying) {
-          vid.play().catch(() => {}).finally(() => {
+      if (vid.style.display !== 'none') {
+        isSyncingFromRemote = true;
+        const applyState = () => {
+          vid.currentTime = currentTime;
+          if (isPlaying) {
+            vid.play().catch(() => {}).finally(() => {
+              setTimeout(() => { isSyncingFromRemote = false; }, 200);
+            });
+          } else {
             setTimeout(() => { isSyncingFromRemote = false; }, 200);
-          });
+          }
+        };
+        if (vid.readyState >= 1) {
+          applyState();
         } else {
-          setTimeout(() => { isSyncingFromRemote = false; }, 200);
+          vid.addEventListener('loadedmetadata', applyState, { once: true });
         }
-      };
-
-      // If metadata already loaded, apply immediately; otherwise wait
-      if (vid.readyState >= 1) {
-        applyState();
-      } else {
-        vid.addEventListener('loadedmetadata', applyState, { once: true });
       }
     }
     updateWaitingOverlay();
@@ -2214,14 +2214,20 @@ function loadVideo(url, type, broadcast) {
   if (broadcast) historyAdd(url);
   noVideo.style.display = 'none';
 
-  if (type === 'iframe') {
+  if (type === 'iframe' || isYouTubeUrl(url)) {
     vid.style.display = 'none';
     vid.pause();
     vid.src = '';
     controls.style.opacity = '0';
     controls.style.pointerEvents = 'none';
     iframe.style.display = 'block';
-    iframe.src = url;
+    // Convert YouTube watch URLs to embeddable format
+    let embedUrl = url;
+    if (isYouTubeUrl(url)) {
+      const ytId = extractYouTubeId(url);
+      if (ytId) embedUrl = `https://www.youtube.com/embed/${ytId}?autoplay=1&enablejsapi=1&origin=${location.origin}`;
+    }
+    iframe.src = embedUrl;
   } else {
     iframe.style.display = 'none';
     iframe.src = '';
