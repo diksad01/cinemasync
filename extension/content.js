@@ -52,7 +52,15 @@
           background:rgba(6,8,15,0.97); border-left:1px solid rgba(240,192,96,0.2);
           font-family:'DM Sans',system-ui,sans-serif; display:flex; flex-direction:column;
           transition:transform 0.3s cubic-bezier(0.4,0,0.2,1); backdrop-filter:blur(16px); }
-        #sw-sidebar.collapsed { transform:translateX(300px); }
+        #sw-sidebar.collapsed { transform:translateX(340px); }
+        #sw-tab { position:fixed; top:50%; right:0; z-index:99999999; transform:translateY(-50%);
+          background:rgba(6,8,15,0.95); border:1px solid rgba(240,192,96,0.3); border-right:none;
+          border-radius:8px 0 0 8px; padding:10px 6px; cursor:pointer; color:#f0c060;
+          font-family:'DM Sans',system-ui,sans-serif; font-size:14px; font-weight:700;
+          writing-mode:vertical-lr; text-orientation:mixed; display:none;
+          box-shadow:-4px 0 16px rgba(0,0,0,0.4); transition:0.2s; }
+        #sw-tab:hover { background:rgba(240,192,96,0.15); }
+        #sw-tab.visible { display:block; }
         #sw-header { padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.07);
           display:flex; align-items:center; gap:10px; flex-shrink:0; }
         #sw-header-dot { width:8px; height:8px; border-radius:50%; background:#f0c060; }
@@ -92,7 +100,7 @@
           <div id="sw-header-title">SomniWatch</div>
           <div id="sw-header-sub">Connecting…</div>
         </div>
-        <button id="sw-toggle" title="Toggle sidebar">◀</button>
+        <button id="sw-toggle" title="Hide sidebar">✕</button>
       </div>
       <div id="sw-users"></div>
       <div id="sw-messages"></div>
@@ -101,12 +109,25 @@
         <button id="sw-send-btn">Send</button>
       </div>
     `;
+    // Floating tab to re-open sidebar
+    let tab = document.getElementById('sw-tab');
+    if (!tab) {
+      tab = document.createElement('div');
+      tab.id = 'sw-tab';
+      tab.textContent = 'SW Chat';
+      document.body.appendChild(tab);
+    }
     document.body.appendChild(sidebar);
 
-    // Toggle collapse
+    // Close sidebar → show tab
     document.getElementById('sw-toggle').onclick = () => {
-      sidebar.classList.toggle('collapsed');
-      document.getElementById('sw-toggle').textContent = sidebar.classList.contains('collapsed') ? '▶' : '◀';
+      sidebar.classList.add('collapsed');
+      tab.classList.add('visible');
+    };
+    // Click tab → reopen sidebar
+    tab.onclick = () => {
+      sidebar.classList.remove('collapsed');
+      tab.classList.remove('visible');
     };
 
     // Send chat
@@ -410,6 +431,8 @@
     if (msg.type === 'SW_DISCONNECT') {
       try { if (socket) { socket.disconnect(); socket = null; } } catch(e) {}
       if (sidebar) { try { sidebar.remove(); } catch(e) {} sidebar = null; }
+      const tab = document.getElementById('sw-tab');
+      if (tab) tab.remove();
       connected = false;
       roomCode = null;
     }
