@@ -433,6 +433,7 @@ io.on('connection', (socket) => {
     socket.join(code);
 
     rooms[code].users[socket.id] = { name: userName, id: socket.id, color: userColor };
+    console.log(`[JOIN] ${userName} joined room ${code} (${Object.keys(rooms[code].users).length} users now)`);
 
     // Send current room state to joining user
     // Calculate live position if video is currently playing
