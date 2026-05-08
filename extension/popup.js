@@ -128,14 +128,13 @@ function leaveRoom() {
   // Clear storage immediately so popup never gets stuck
   chrome.storage.local.remove(['roomCode', 'userName', 'userColor', 'password', 'serverUrl']);
   showConnectView();
-  // Best-effort disconnect content script — don't wait for response
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    if (tabs[0]) {
-      chrome.tabs.sendMessage(tabs[0].id, { type: 'SW_DISCONNECT' }, () => {
-        // Ignore chrome.runtime.lastError — tab may not have content script
+  // Disconnect ALL tabs that might have the content script running
+  chrome.tabs.query({ url: ['*://*.youtube.com/*', '*://*.dailymotion.com/*', '*://*.vimeo.com/*', '*://*.twitch.tv/*'] }, (tabs) => {
+    (tabs || []).forEach(tab => {
+      chrome.tabs.sendMessage(tab.id, { type: 'SW_DISCONNECT' }, () => {
         void chrome.runtime.lastError;
       });
-    }
+    });
   });
 }
 
