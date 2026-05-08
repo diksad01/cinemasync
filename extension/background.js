@@ -1,6 +1,11 @@
 // SomniWatch Background Service Worker
 // Handles storage and message passing between popup and content script
 
+// Clear stale sessions on install/update
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.storage.local.clear();
+});
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === 'GET_SESSION') {
     chrome.storage.local.get(['roomCode', 'userName', 'userColor', 'serverUrl'], (data) => {
