@@ -79,7 +79,7 @@ export default function WatchRoom() {
         {/* Video area */}
         <div className={`flex-1 relative ${isChatOpen ? '' : ''}`}>
           <VideoPlayer />
-          {users.length < 2 && isConnected && (
+          {users.length < 2 && isConnected && !videoUrl && (
             <div className="absolute inset-0 flex items-center justify-center bg-sw-backdrop/80 z-10">
               <div className="text-center">
                 <div className="text-4xl mb-4">⏳</div>
