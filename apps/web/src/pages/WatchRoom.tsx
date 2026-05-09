@@ -3,6 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useStore } from '@/store'
 import { useSocket, getSocket } from '@/hooks/useSocket'
 import { useFileShare } from '@/hooks/useFileShare'
+import { onAuthStateChanged } from 'firebase/auth'
+import { doc, getDoc } from 'firebase/firestore'
+import { auth, db, MASTER_UID } from '@/lib/firebase'
 import VideoPlayer from '@/components/VideoPlayer'
 import ChatSidebar from '@/components/ChatSidebar'
 import CountdownOverlay from '@/components/CountdownOverlay'
@@ -11,6 +14,7 @@ import IncomingFileModal from '@/components/IncomingFileModal'
 import SyncToast from '@/components/SyncToast'
 import EmojiReaction from '@/components/EmojiReaction'
 import WaitingOverlay from '@/components/WaitingOverlay'
+import ThemeSwitcher from '@/components/ThemeSwitcher'
 
 export default function WatchRoom() {
   const { roomId } = useParams<{ roomId: string }>()
@@ -18,6 +22,23 @@ export default function WatchRoom() {
   const { userName, userColor, videoUrl, setVideoUrl, users, isConnected, isChatOpen, toggleChat, setRoom, setUserName, addMessage } = useStore()
   const pendingUrl = useRef(localStorage.getItem('sw_pending_url') || '')
   const [receivingProgress, setReceivingProgress] = useState(0)
+  const [userPlan, setUserPlan] = useState('free')
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      if (!u) { setUserPlan('free'); return }
+      if (u.uid === MASTER_UID) { setUserPlan('master'); return }
+      try {
+        const snap = await getDoc(doc(db, 'users', u.uid))
+        if (snap.exists()) {
+          const d = snap.data()
+          const exp = d.expiresAt ? new Date(d.expiresAt) : null
+          setUserPlan(d.active && (!exp || exp > new Date()) ? (d.tier || 'free') : 'free')
+        }
+      } catch { setUserPlan('free') }
+    })
+    return unsub
+  }, [])
 
   // Ensure user has a name
   useEffect(() => {
@@ -127,6 +148,7 @@ export default function WatchRoom() {
         </div>
         <div className="flex items-center gap-2">
           <button onClick={copyLink} className="text-xs interactive" style={{ color: 'var(--cyan)' }}>Copy Link</button>
+          <ThemeSwitcher userPlan={userPlan} />
           <button onClick={toggleChat} className="text-xs interactive hover:text-sw-text" style={{ color: 'var(--muted)' }}>
             {isChatOpen ? 'Hide Chat' : 'Show Chat'}
           </button>

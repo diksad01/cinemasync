@@ -31,10 +31,14 @@ interface SomniStore {
 
   isConnected: boolean
   setConnected: (v: boolean) => void
+
+  theme: string
+  setTheme: (id: string) => void
 }
 
 const savedName = typeof window !== 'undefined' ? localStorage.getItem('sw_name') || '' : ''
 const savedColor = typeof window !== 'undefined' ? localStorage.getItem('sw_color') || '#f0c060' : '#f0c060'
+const savedTheme = typeof window !== 'undefined' ? localStorage.getItem('sw_theme') || 'midnight-gold' : 'midnight-gold'
 
 export const useStore = create<SomniStore>((set) => ({
   userId: crypto.randomUUID(),
@@ -72,4 +76,10 @@ export const useStore = create<SomniStore>((set) => ({
 
   isConnected: false,
   setConnected: (v) => set({ isConnected: v }),
+
+  theme: savedTheme,
+  setTheme: (id) => {
+    localStorage.setItem('sw_theme', id)
+    set({ theme: id })
+  },
 }))

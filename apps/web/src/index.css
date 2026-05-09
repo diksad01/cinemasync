@@ -58,15 +58,15 @@ body::after {
 /* Gold button */
 .btn-primary {
   @apply font-semibold border-none rounded-xl px-6 py-3 cursor-pointer;
-  background: linear-gradient(135deg, #f0c060, #f0a03c);
-  color: #06080f;
+  background: linear-gradient(135deg, var(--gold), var(--gold-hover));
+  color: var(--bg);
   transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s ease, opacity 0.2s ease;
   position: relative;
   overflow: hidden;
 }
 .btn-primary:hover {
   transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 8px 32px rgba(240,192,96,0.35), 0 2px 8px rgba(240,192,96,0.2);
+  box-shadow: 0 8px 32px var(--gold-glow-strong), 0 2px 8px var(--gold-glow);
 }
 .btn-primary:active { transform: scale(0.96) translateY(1px); }
 
@@ -79,7 +79,7 @@ body::after {
 }
 .card:hover {
   transform: translateY(-6px);
-  border-color: rgba(240,192,96,0.4);
+  border-color: var(--gold-border);
   box-shadow: 0 12px 40px rgba(0,0,0,0.3);
 }
 .card-gold { border-color: var(--gold-border); }
