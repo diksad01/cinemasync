@@ -3,6 +3,16 @@ export interface User {
   name: string
   color?: string
   avatar?: string
+  isFounder?: boolean
+}
+
+export interface PinnedMoment {
+  id: string
+  userId: string
+  name: string
+  time: number
+  note: string
+  pinnedAt: number
 }
 
 export interface Room {
@@ -56,6 +66,14 @@ export interface ServerToClientEvents {
   typing:             (data: { userName: string; isTyping: boolean; id: string }) => void
   room_upload:        (data: { fileName: string }) => void
   error:              (data: { message: string }) => void
+  room_full:          (data: { maxViewers: number }) => void
+  moment_pinned:      (pin: PinnedMoment) => void
+  pins_list:          (data: { pins: PinnedMoment[] }) => void
+  knock_request:      (data: { fromId: string; fromName: string }) => void
+  knock_accepted:     () => void
+  knock_declined:     () => void
+  knock_expired:      () => void
+  queue_updated:      (data: { queue: { id: string; url: string; title: string; thumbnail?: string; addedBy?: string }[] }) => void
   // WebRTC
   webrtc_offer:       (data: { offer: RTCSessionDescriptionInit; from: string }) => void
   webrtc_answer:      (data: { answer: RTCSessionDescriptionInit; from: string }) => void
@@ -77,7 +95,14 @@ export interface ClientToServerEvents {
   countdown_start:    () => void
   host_kick:          (data: { targetId: string }) => void
   host_mute:          (data: { targetId: string; mute: boolean }) => void
-  queue_add:          (data: { url: string }) => void
+  queue_add:          (data: { url: string; title?: string; type?: string }) => void
+  queue_remove:       (data: { roomId: string; itemId: string }) => void
+  queue_reorder:      (data: { roomId: string; queue: unknown[] }) => void
+  queue_next:         (data: { roomId: string }) => void
+  pin_moment:         (data: { roomId: string; time: number; note: string }) => void
+  get_pins:           (data: { roomId: string }) => void
+  knock:              (data: { roomId: string; userName: string }) => void
+  knock_respond:      (data: { toId: string; accepted: boolean }) => void
   // WebRTC
   webrtc_offer:       (data: { offer: RTCSessionDescriptionInit }) => void
   webrtc_answer:      (data: { answer: RTCSessionDescriptionInit }) => void

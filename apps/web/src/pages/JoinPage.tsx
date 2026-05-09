@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useStore } from '@/store'
+import { useUsername } from '@/hooks/useUsername'
 import axios from 'axios'
 
 export default function JoinPage() {
   const { roomId } = useParams<{ roomId: string }>()
   const navigate = useNavigate()
-  const { userName, setUserName } = useStore()
-  const [name, setName] = useState(userName || '')
+  const { setUserName } = useStore()
+  const { name: storedName, saveName, hasName } = useUsername()
+  const [name, setName] = useState(storedName)
+  const [isEditing, setIsEditing] = useState(!hasName)
   const [roomInfo, setRoomInfo] = useState<{ videoUrl: string | null; userCount: number } | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -19,10 +22,17 @@ export default function JoinPage() {
       .catch(() => { setRoomInfo({ videoUrl: null, userCount: 0 }); setLoading(false) })
   }, [roomId])
 
-  useEffect(() => { if (userName) setName(userName) }, [userName])
+  // Auto-join if we already have a stored username and room loaded
+  useEffect(() => {
+    if (!loading && hasName && !isEditing) {
+      setUserName(storedName)
+      navigate(`/room/${roomId}`)
+    }
+  }, [loading, hasName, isEditing])
 
   const join = () => {
     if (!name.trim()) return setError('Enter your name')
+    saveName(name.trim())
     setUserName(name.trim())
     navigate(`/room/${roomId}`)
   }
@@ -62,16 +72,24 @@ export default function JoinPage() {
               </p>
             )}
 
-            <div className="anim-fade-up" style={{ animationDelay: '0.1s' }}>
+            <div className="anim-fade-up mb-4" style={{ animationDelay: '0.1s' }}>
               <label className="block text-sm mb-2" style={{ color: 'var(--muted)' }}>Your name</label>
-              <input
-                className="sw-input mb-4"
-                placeholder="Enter your name"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && join()}
-                autoFocus
-              />
+              {hasName && !isEditing ? (
+                <div className="flex items-center gap-2">
+                  <span className="flex-1 px-3 py-2.5 rounded-lg text-sm" style={{ background: 'var(--surface-hover)', color: 'var(--text)', border: '1px solid var(--border)' }}>{storedName}</span>
+                  <button onClick={() => setIsEditing(true)} className="p-2 rounded-lg interactive" style={{ border: '1px solid var(--border)', color: 'var(--muted)' }} title="Change name">✏️</button>
+                </div>
+              ) : (
+                <input
+                  className="sw-input"
+                  placeholder="Enter your name"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && join()}
+                  autoFocus
+                  style={{ fontSize: 16 }}
+                />
+              )}
             </div>
 
             {error && <p className="text-sm mb-3 anim-fade-in" style={{ color: 'var(--red)' }}>{error}</p>}

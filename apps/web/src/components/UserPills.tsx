@@ -9,7 +9,11 @@ export default function UserPills({ users }: Props) {
   return (
     <div className="flex flex-wrap gap-1.5 stagger">
       {users.map(u => (
-        <span key={u.id} className="user-pill anim-scale-in">
+        <span
+          key={u.id}
+          className="user-pill anim-scale-in"
+          style={u.isFounder ? { borderColor: 'var(--gold-border)', animation: 'goldPulse 3s ease-in-out infinite' } : {}}
+        >
           <span className="relative">
             <span className="dot-green" />
             <span
@@ -21,7 +25,8 @@ export default function UserPills({ users }: Props) {
               }}
             />
           </span>
-          {u.name}
+          {u.isFounder && <span className="mr-0.5">👑</span>}
+          <span style={u.isFounder ? { color: 'var(--gold)' } : {}}>{u.name}</span>
         </span>
       ))}
     </div>

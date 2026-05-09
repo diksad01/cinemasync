@@ -57,11 +57,20 @@ const APP_LIVE = process.env.APP_LIVE === 'true';
 function isLaunched() { if (APP_LIVE) return true; return new Date() >= LAUNCH_DATE; }
 
 const rooms = {};
+const permanentRooms = {}; // slug → roomId (permanent rooms never expire)
+const FOUNDERS = ['saddiq', 'diksad', 'musaadamsaddiq']; // add names/emails as people pay
+
 function generateRoomCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
   for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
   return code;
+}
+
+function isFounder(userName) {
+  if (!userName) return false;
+  const lower = userName.toLowerCase();
+  return FOUNDERS.some(f => lower.includes(f));
 }
 
 // ── API routes ───────────────────────────────────────────────────
@@ -179,6 +188,24 @@ app.get('/api/room/:code', (req, res) => {
   res.json({ roomId: code, videoUrl: room.videoUrl, videoType: room.videoType, users: Object.values(room.users), userCount: Object.keys(room.users).length });
 });
 
+// ── Permanent room endpoints ──────────────────────────────────────
+app.get('/api/check-slug/:slug', (req, res) => {
+  const slug = req.params.slug.toLowerCase().trim();
+  res.json({ taken: !!permanentRooms[slug] });
+});
+
+app.post('/api/create-permanent-room', (req, res) => {
+  const { slug, videoUrl, userName } = req.body || {};
+  if (!slug || !/^[a-z0-9-]{3,30}$/.test(slug)) return res.status(400).json({ error: 'Invalid slug' });
+  if (permanentRooms[slug]) return res.status(409).json({ error: 'Already taken' });
+  if (!rooms[slug]) {
+    rooms[slug] = { users: {}, host: null, maxViewers: 10, videoUrl: videoUrl || null, videoType: null, currentTime: 0, isPlaying: false, lastUpdate: Date.now(), pins: [], queue: [], isPermanent: true };
+  }
+  permanentRooms[slug] = slug;
+  console.log(`[Room] Permanent room created: ${slug} by ${userName}`);
+  res.json({ roomId: slug });
+});
+
 // SPA fallback with launch gate
 app.get('*', (req, res) => {
   if (req.path === '/' && !isLaunched()) {
@@ -215,7 +242,7 @@ io.on('connection', (socket) => {
 
     currentRoom = code;
     socket.join(code);
-    rooms[code].users[socket.id] = { name: userName, id: socket.id, color: userColor };
+    rooms[code].users[socket.id] = { name: userName, id: socket.id, color: userColor, isFounder: isFounder(userName) };
     console.log(`[JOIN] ${userName} joined ${code} (${Object.keys(rooms[code].users).length} users)`);
 
     const room = rooms[code];
@@ -279,6 +306,41 @@ io.on('connection', (socket) => {
   socket.on('countdown_start', () => { if (currentRoom) io.to(currentRoom).emit('countdown_start', { from: currentUser }); });
   socket.on('queue_add', ({ url, title, type }) => { if (currentRoom) socket.to(currentRoom).emit('queue_add', { url, title, type }); });
   socket.on('queue_sync', ({ queue }) => { if (currentRoom) socket.to(currentRoom).emit('queue_sync', { queue }); });
+
+  // ── Pinned moments ────────────────────────────────────────────
+  socket.on('pin_moment', ({ roomId: rid, time, note }) => {
+    const code = rid || currentRoom;
+    if (!code || !rooms[code]) return;
+    if (!rooms[code].pins) rooms[code].pins = [];
+    const pin = { id: crypto.randomUUID(), userId: socket.id, name: currentUser, time, note: note || '', pinnedAt: Date.now() };
+    rooms[code].pins.push(pin);
+    io.to(code).emit('moment_pinned', pin);
+  });
+
+  socket.on('get_pins', ({ roomId: rid }) => {
+    const code = rid || currentRoom;
+    socket.emit('pins_list', { pins: rooms[code]?.pins ?? [] });
+  });
+
+  // ── Knock-to-join ─────────────────────────────────────────────
+  socket.on('knock', ({ roomId: rid, userName: uName }) => {
+    const code = (rid || '').toUpperCase().trim();
+    if (!rooms[code] || Object.keys(rooms[code].users).length === 0) {
+      socket.emit('knock_accepted');
+      return;
+    }
+    const hostId = rooms[code].host;
+    if (hostId) {
+      io.to(hostId).emit('knock_request', { fromId: socket.id, fromName: uName });
+    } else {
+      socket.emit('knock_accepted');
+    }
+    setTimeout(() => socket.emit('knock_expired'), 60000);
+  });
+
+  socket.on('knock_respond', ({ toId, accepted }) => {
+    io.to(toId).emit(accepted ? 'knock_accepted' : 'knock_declined');
+  });
 
   // ── Face Cam / Voice — WebRTC signaling relay ──────────────────
   if (!rooms._camUsers) rooms._camUsers = {};
