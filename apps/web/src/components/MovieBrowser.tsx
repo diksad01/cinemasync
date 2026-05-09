@@ -335,7 +335,12 @@ export default function MovieBrowser({ onClose }: MovieBrowserProps) {
               ))}
             </div>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center interactive text-sm shrink-0" style={{ color: 'var(--muted)', border: '1px solid var(--border)' }}>✕</button>
+          <div className="flex items-center gap-2 shrink-0">
+            <a href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer" title="Movie data by TMDB">
+              <img src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_short-8e7b30f73a4020692ccca9c88bafe5dcb6f8a62a4c6bc55cd9ba82bb2cd95f6c.svg" alt="TMDB" style={{ height: 10, opacity: 0.45, filter: 'brightness(0) invert(1)' }} />
+            </a>
+            <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center interactive text-sm" style={{ color: 'var(--muted)', border: '1px solid var(--border)' }}>✕</button>
+          </div>
         </div>
 
         {tab === 'browse' ? (

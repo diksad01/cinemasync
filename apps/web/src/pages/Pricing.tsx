@@ -224,8 +224,20 @@ export default function Pricing() {
       )}
 
       {/* Footer */}
-      <footer className="relative z-10 px-6 py-8 text-center text-sm" style={{ borderTop: '1px solid var(--border)', color: 'var(--muted)' }}>
-        <p>SomniWatch © {new Date().getFullYear()} — Built for couples who watch apart.</p>
+      <footer className="relative z-10 px-6 py-10 text-center text-sm" style={{ borderTop: '1px solid var(--border)', color: 'var(--muted)' }}>
+        <p className="mb-4">SomniWatch © {new Date().getFullYear()} — Built for couples who watch apart.</p>
+        <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs" style={{ color: 'var(--faint)' }}>
+          <span>Powered by:</span>
+          <a href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:opacity-80 transition-opacity" style={{ color: 'var(--muted)' }}>
+            <img src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_short-8e7b30f73a4020692ccca9c88bafe5dcb6f8a62a4c6bc55cd9ba82bb2cd95f6c.svg" alt="TMDB" style={{ height: 12, filter: 'brightness(0) invert(0.6)' }} />
+          </a>
+          <a href="https://www.omdbapi.com" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity" style={{ color: 'var(--muted)' }}>OMDb API</a>
+          <a href="https://archive.org" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity" style={{ color: 'var(--muted)' }}>Internet Archive</a>
+          <a href="https://firebase.google.com" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity" style={{ color: 'var(--muted)' }}>Firebase</a>
+          <a href="https://socket.io" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity" style={{ color: 'var(--muted)' }}>Socket.IO</a>
+          <a href="https://railway.app" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity" style={{ color: 'var(--muted)' }}>Railway</a>
+        </div>
+        <p className="mt-3 text-[10px]" style={{ color: 'var(--faint)' }}>This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
       </footer>
     </div>
   )
