@@ -272,11 +272,53 @@ io.on('connection', (socket) => {
   socket.on('countdown_start', () => { if (currentRoom) io.to(currentRoom).emit('countdown_start', { from: currentUser }); });
   socket.on('queue_add', ({ url }) => { if (currentRoom) socket.to(currentRoom).emit('queue_add', { url }); });
 
-  // WebRTC relay
-  socket.on('webrtc_offer', ({ offer }) => { if (currentRoom) socket.to(currentRoom).emit('webrtc_offer', { offer, from: socket.id }); });
-  socket.on('webrtc_answer', ({ answer }) => { if (currentRoom) socket.to(currentRoom).emit('webrtc_answer', { answer, from: socket.id }); });
-  socket.on('webrtc_ice', ({ candidate }) => { if (currentRoom) socket.to(currentRoom).emit('webrtc_ice', { candidate, from: socket.id }); });
+  // ── P2P File sharing — WebRTC signaling (no file data touches the server) ──
+  socket.on('file_offer', ({ roomId, fileName, fileSize, fileType }) => {
+    const code = roomId || currentRoom;
+    if (!code || !rooms[code]) return;
+    rooms[code].pendingFile = { fileName, fileSize, fileType, fromId: socket.id };
+    socket.to(code).emit('file_offer', { fileName, fileSize, fileType, fromId: socket.id });
+    console.log(`[Room ${code}] File offer: ${fileName} (${(fileSize / 1024 / 1024).toFixed(1)} MB)`);
+  });
+
+  socket.on('file_accepted', ({ roomId, fromId }) => {
+    io.to(fromId).emit('file_accepted', { byId: socket.id });
+  });
+
+  socket.on('file_rejected', ({ roomId, fromId }) => {
+    io.to(fromId).emit('file_rejected', { byId: socket.id });
+  });
+
+  // WebRTC signaling relay — targeted by toId, never inspect payload
+  socket.on('webrtc_offer', ({ toId, offer }) => {
+    if (toId) io.to(toId).emit('webrtc_offer', { fromId: socket.id, offer });
+    else if (currentRoom) socket.to(currentRoom).emit('webrtc_offer', { fromId: socket.id, offer });
+  });
+
+  socket.on('webrtc_answer', ({ toId, answer }) => {
+    if (toId) io.to(toId).emit('webrtc_answer', { fromId: socket.id, answer });
+    else if (currentRoom) socket.to(currentRoom).emit('webrtc_answer', { fromId: socket.id, answer });
+  });
+
+  socket.on('webrtc_ice', ({ toId, candidate }) => {
+    if (toId) io.to(toId).emit('webrtc_ice', { fromId: socket.id, candidate });
+    else if (currentRoom) socket.to(currentRoom).emit('webrtc_ice', { fromId: socket.id, candidate });
+  });
+
   socket.on('webrtc_stop', () => { if (currentRoom) socket.to(currentRoom).emit('webrtc_stop', { from: socket.id }); });
+
+  socket.on('file_transfer_complete', ({ roomId }) => {
+    const code = roomId || currentRoom;
+    if (code) {
+      socket.to(code).emit('file_transfer_complete');
+      if (rooms[code]) delete rooms[code].pendingFile;
+      console.log(`[Room ${code}] File transfer complete`);
+    }
+  });
+
+  socket.on('file_transfer_progress', ({ toId, progress }) => {
+    if (toId) io.to(toId).emit('file_transfer_progress', { progress });
+  });
 
   socket.on('disconnect', () => {
     if (!currentRoom || !rooms[currentRoom]) return;
