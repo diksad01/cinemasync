@@ -42,6 +42,16 @@ function connectSocket(roomCode: string, userName: string, userColor: string) {
       else broadcastToContentScripts({ type: 'SYNC_SEEK', time: data.currentTime })
     }
   })
+
+  // When a new user joins and server asks for current state, re-broadcast URL
+  socket.on('request_state_sync', () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]?.id && tabs[0]?.url && !tabs[0].url.startsWith('chrome')) {
+        const cleanUrl = tabs[0].url.replace(/[?&]sw_room=[^&]+/, '')
+        socket!.emit('sync_url', { url: cleanUrl, videoType: 'iframe' })
+      }
+    })
+  })
 }
 
 function broadcastToContentScripts(message: any) {
