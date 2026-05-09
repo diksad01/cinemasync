@@ -181,8 +181,9 @@ app.get('/api/search', async (req, res) => {
   } catch (err) { res.status(500).json({ error: 'Search failed: ' + err.message }); }
 });
 
-// ── TMDB proxy endpoints ──────────────────────────────────────────
+// ── TMDB + OMDb proxy endpoints ───────────────────────────────────
 const TMDB_KEY = process.env.TMDB_API_KEY;
+const OMDB_KEY = process.env.OMDB_API_KEY;
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const TMDB_IMG  = 'https://image.tmdb.org/t/p/w500';
 const TMDB_IMG_ORIG = 'https://image.tmdb.org/t/p/original';
@@ -206,6 +207,55 @@ function tmdbMovie(m) {
 // Genre map (TMDB genre IDs → names)
 const TMDB_GENRES = { 28:'Action',12:'Adventure',16:'Animation',35:'Comedy',80:'Crime',99:'Documentary',18:'Drama',10751:'Family',14:'Fantasy',36:'History',27:'Horror',10402:'Music',9648:'Mystery',10749:'Romance',878:'Sci-Fi',53:'Thriller',10752:'War',37:'Western' };
 
+// ── OMDb helpers ──────────────────────────────────────────────────
+function omdbToMovie(m) {
+  return {
+    id: m.imdbID,
+    tmdbId: null,
+    imdbId: m.imdbID,
+    title: m.Title || 'Untitled',
+    year: m.Year ? m.Year.slice(0, 4) : '',
+    rating: m.imdbRating && m.imdbRating !== 'N/A' ? m.imdbRating : null,
+    votes: 0,
+    overview: m.Plot && m.Plot !== 'N/A' ? m.Plot : '',
+    poster: m.Poster && m.Poster !== 'N/A' ? m.Poster : null,
+    backdrop: null,
+    genres: m.Genre ? m.Genre.split(', ') : [],
+    runtime: m.Runtime && m.Runtime !== 'N/A' ? m.Runtime : null,
+    rated: m.Rated && m.Rated !== 'N/A' ? m.Rated : null,
+    director: m.Director && m.Director !== 'N/A' ? m.Director : null,
+    actors: m.Actors && m.Actors !== 'N/A' ? m.Actors : null,
+    source: 'omdb',
+  };
+}
+
+// OMDb search endpoint
+app.get('/api/omdb/search', async (req, res) => {
+  if (!OMDB_KEY) return res.status(503).json({ error: 'OMDB_API_KEY not set' });
+  const { q, page = 1 } = req.query;
+  if (!q) return res.status(400).json({ error: 'q required' });
+  try {
+    const r = await axios.get('https://www.omdbapi.com/', { params: { apikey: OMDB_KEY, s: q, type: 'movie', page }, timeout: 8000 });
+    if (r.data.Response === 'False') return res.json({ results: [], total: 0 });
+    // Fetch brief details for each to get posters
+    const ids = (r.data.Search || []).map(m => m.imdbID);
+    const details = await Promise.allSettled(ids.slice(0, 10).map(id => axios.get('https://www.omdbapi.com/', { params: { apikey: OMDB_KEY, i: id }, timeout: 6000 })));
+    const results = details.filter(d => d.status === 'fulfilled' && d.value.data.Response === 'True').map(d => omdbToMovie(d.value.data));
+    res.json({ results, total: parseInt(r.data.totalResults || '0') });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// OMDb single movie by IMDb ID
+app.get('/api/omdb/movie/:imdbId', async (req, res) => {
+  if (!OMDB_KEY) return res.status(503).json({ error: 'OMDB_API_KEY not set' });
+  try {
+    const r = await axios.get('https://www.omdbapi.com/', { params: { apikey: OMDB_KEY, i: req.params.imdbId, plot: 'full' }, timeout: 8000 });
+    if (r.data.Response === 'False') return res.status(404).json({ error: 'Not found' });
+    res.json(omdbToMovie(r.data));
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── TMDB endpoints (fall back to OMDb search if TMDB unavailable) ─
 app.get('/api/tmdb/popular', async (req, res) => {
   if (!TMDB_KEY) return res.status(503).json({ error: 'TMDB_API_KEY not set' });
   const { page = 1 } = req.query;
@@ -224,13 +274,26 @@ app.get('/api/tmdb/trending', async (req, res) => {
 });
 
 app.get('/api/tmdb/search', async (req, res) => {
-  if (!TMDB_KEY) return res.status(503).json({ error: 'TMDB_API_KEY not set' });
   const { q, page = 1 } = req.query;
   if (!q) return res.status(400).json({ error: 'q required' });
-  try {
-    const r = await axios.get(`${TMDB_BASE}/search/movie`, { params: { api_key: TMDB_KEY, query: q, page }, timeout: 8000 });
-    res.json({ results: (r.data.results || []).map(tmdbMovie), total_pages: r.data.total_pages });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  // Try TMDB first, fall back to OMDb
+  if (TMDB_KEY) {
+    try {
+      const r = await axios.get(`${TMDB_BASE}/search/movie`, { params: { api_key: TMDB_KEY, query: q, page }, timeout: 8000 });
+      return res.json({ results: (r.data.results || []).map(tmdbMovie), total_pages: r.data.total_pages, source: 'tmdb' });
+    } catch { /* fall through to OMDb */ }
+  }
+  if (OMDB_KEY) {
+    try {
+      const r = await axios.get('https://www.omdbapi.com/', { params: { apikey: OMDB_KEY, s: q, type: 'movie', page }, timeout: 8000 });
+      if (r.data.Response === 'False') return res.json({ results: [], total: 0, source: 'omdb' });
+      const ids = (r.data.Search || []).map(m => m.imdbID);
+      const details = await Promise.allSettled(ids.slice(0, 10).map(id => axios.get('https://www.omdbapi.com/', { params: { apikey: OMDB_KEY, i: id }, timeout: 6000 })));
+      const results = details.filter(d => d.status === 'fulfilled' && d.value.data.Response === 'True').map(d => omdbToMovie(d.value.data));
+      return res.json({ results, total: parseInt(r.data.totalResults || '0'), source: 'omdb' });
+    } catch (err) { return res.status(500).json({ error: err.message }); }
+  }
+  res.status(503).json({ error: 'No movie API keys configured' });
 });
 
 app.get('/api/tmdb/genre/:genreId', async (req, res) => {
@@ -260,6 +323,32 @@ app.get('/api/tmdb/movie/:id', async (req, res) => {
       imdbId: m.imdb_id,
     });
   } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Unified movie detail — tries TMDB then OMDb by imdbId
+app.get('/api/movie/detail', async (req, res) => {
+  const { tmdbId, imdbId, title, year } = req.query;
+  // Try TMDB by tmdbId
+  if (TMDB_KEY && tmdbId) {
+    try {
+      const [details, videos] = await Promise.all([
+        axios.get(`${TMDB_BASE}/movie/${tmdbId}`, { params: { api_key: TMDB_KEY }, timeout: 8000 }),
+        axios.get(`${TMDB_BASE}/movie/${tmdbId}/videos`, { params: { api_key: TMDB_KEY }, timeout: 8000 }),
+      ]);
+      const m = details.data;
+      const trailer = (videos.data.results || []).find(v => v.type === 'Trailer' && v.site === 'YouTube');
+      return res.json({ ...tmdbMovie(m), runtime: m.runtime, tagline: m.tagline, genres: (m.genres || []).map(g => g.name), trailerKey: trailer?.key || null, imdbId: m.imdb_id, source: 'tmdb' });
+    } catch { /* fall through */ }
+  }
+  // Try OMDb by imdbId or title
+  if (OMDB_KEY) {
+    try {
+      const params = imdbId ? { apikey: OMDB_KEY, i: imdbId, plot: 'full' } : { apikey: OMDB_KEY, t: title, y: year, plot: 'full' };
+      const r = await axios.get('https://www.omdbapi.com/', { params, timeout: 8000 });
+      if (r.data.Response === 'True') return res.json({ ...omdbToMovie(r.data), source: 'omdb' });
+    } catch { /* fall through */ }
+  }
+  res.status(404).json({ error: 'Movie not found' });
 });
 
 // Archive.org search by movie title (used for finding playable source)

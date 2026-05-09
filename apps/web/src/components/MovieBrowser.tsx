@@ -88,7 +88,11 @@ function MovieDetail({ movie, onPlay, onBack }: { movie: TmdbMovie; onPlay: (url
   const [archiveUrl, setArchiveUrl] = useState('')
 
   useEffect(() => {
-    axios.get(`/api/tmdb/movie/${movie.id}`).then(r => setDetail(r.data)).catch(() => {})
+    const isTmdbId = typeof movie.id === 'number'
+    const url = isTmdbId
+      ? `/api/movie/detail?tmdbId=${movie.id}&imdbId=${(movie as any).imdbId || ''}`
+      : `/api/movie/detail?imdbId=${movie.id}&title=${encodeURIComponent(movie.title)}&year=${movie.year}`
+    axios.get(url).then(r => setDetail(r.data)).catch(() => {})
   }, [movie.id])
 
   const findAndPlay = async () => {
@@ -238,13 +242,24 @@ export default function MovieBrowser({ onClose }: MovieBrowserProps) {
         setResults(data.results)
         setNoTmdb(false)
       } else if (Array.isArray(data)) {
-        // archive fallback
         setResults(data.map((d: any) => ({ ...d, source: 'archive' } as ArchiveMovie)))
+        setNoTmdb(true)
       }
     } catch {
-      // TMDB not configured — fall back to Archive
-      setNoTmdb(true)
-      setResults([])
+      // TMDB unavailable — fall back to OMDb search using genre label
+      try {
+        const { data } = await axios.get(`/api/omdb/search?q=${encodeURIComponent(pill.label === 'Trending' || pill.label === 'Popular' ? 'best movies' : pill.label)}`)
+        if (data.results?.length) {
+          setResults(data.results)
+          setNoTmdb(true)
+        } else {
+          setNoTmdb(true)
+          setResults([])
+        }
+      } catch {
+        setNoTmdb(true)
+        setResults([])
+      }
     }
     setLoading(false)
   }, [])
@@ -308,7 +323,7 @@ export default function MovieBrowser({ onClose }: MovieBrowserProps) {
         <div className="flex items-center justify-between px-4 py-3 shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
           <div className="flex items-center gap-3">
             <span className="font-bold text-sm" style={{ color: 'var(--gold)' }}>🎬 Movie Browser</span>
-            {noTmdb && <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,96,96,0.1)', color: 'var(--red)', border: '1px solid rgba(255,96,96,0.2)' }}>Archive only — add TMDB_API_KEY for full library</span>}
+            {noTmdb && <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,160,60,0.1)', color: 'var(--gold)', border: '1px solid rgba(255,160,60,0.2)' }}>IMDb data · add TMDB_API_KEY for full posters</span>}
             <div className="flex gap-1">
               {(['browse', 'history'] as const).map(t => (
                 <button key={t} onClick={() => setTab(t)}
