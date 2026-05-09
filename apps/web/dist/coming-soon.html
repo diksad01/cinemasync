@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SomniWatch — Coming Soon</title>
+  <link rel="icon" href="/assets/favicon.ico" />
+  <link rel="manifest" href="/assets/site.webmanifest" />
+  <meta name="theme-color" content="#06080f" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #06080f;
+      color: #e8eaf0;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      overflow: hidden;
+    }
+
+    /* Grain overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      max-width: 520px;
+      width: 100%;
+    }
+
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #f0c060;
+      letter-spacing: -0.3px;
+      margin-bottom: 40px;
+      opacity: 0.9;
+    }
+
+    .icon { font-size: 3.5rem; margin-bottom: 20px; animation: float 3s ease-in-out infinite; }
+    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2rem, 6vw, 3rem);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #f0c060, #ffb347);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .sub {
+      color: #7a8199;
+      font-size: 0.95rem;
+      line-height: 1.7;
+      margin-bottom: 36px;
+    }
+
+    /* Countdown */
+    .countdown {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      margin-bottom: 40px;
+    }
+    .cd-block {
+      background: #0c0f1a;
+      border: 1px solid rgba(240,192,96,0.2);
+      border-radius: 14px;
+      padding: 16px 20px;
+      min-width: 72px;
+      text-align: center;
+    }
+    .cd-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 2rem;
+      font-weight: 800;
+      color: #f0c060;
+      line-height: 1;
+    }
+    .cd-label {
+      font-size: 0.62rem;
+      color: #7a8199;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 4px;
+    }
+
+    /* Email form */
+    .form {
+      display: flex;
+      gap: 8px;
+      max-width: 420px;
+      margin: 0 auto 20px;
+    }
+    .form input {
+      flex: 1;
+      background: #0c0f1a;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      color: #e8eaf0;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.88rem;
+      padding: 12px 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form input:focus { border-color: rgba(240,192,96,0.4); }
+    .form input::placeholder { color: #3a4160; }
+    .form button {
+      background: linear-gradient(135deg, rgba(240,192,96,0.9), rgba(255,179,71,0.9));
+      color: #06080f;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 800;
+      padding: 12px 20px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.2s;
+    }
+    .form button:hover { opacity: 0.88; }
+    .form button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .success-msg {
+      background: rgba(74,222,128,0.1);
+      border: 1px solid rgba(74,222,128,0.25);
+      border-radius: 10px;
+      color: #4ade80;
+      font-size: 0.82rem;
+      padding: 12px 16px;
+      display: none;
+      margin: 0 auto 20px;
+      max-width: 420px;
+    }
+    .success-msg.show { display: block; }
+
+    .hint { font-size: 0.72rem; color: #3a4160; margin-bottom: 40px; }
+
+    /* Features teaser */
+    .features {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 32px;
+    }
+    .feat-chip {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 100px;
+      padding: 5px 13px;
+      font-size: 0.72rem;
+      color: #7a8199;
+    }
+
+    .footer {
+      font-size: 0.68rem;
+      color: #3a4160;
+    }
+
+    @media (max-width: 480px) {
+      .form { flex-direction: column; }
+      .cd-block { min-width: 58px; padding: 12px 14px; }
+      .cd-num { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">SomniWatch</div>
+  <div class="icon">🎬</div>
+  <h1>Watch parties,<br>done right.</h1>
+  <p class="sub">Invite-only. Knock-to-join. Perfectly synced.<br>SomniWatch launches in — </p>
+
+  <div class="countdown">
+    <div class="cd-block"><div class="cd-num" id="cd-days">14</div><div class="cd-label">Days</div></div>
+    <div class="cd-block"><div class="cd-num" id="cd-hours">00</div><div class="cd-label">Hours</div></div>
+    <div class="cd-block"><div class="cd-num" id="cd-mins">00</div><div class="cd-label">Mins</div></div>
+    <div class="cd-block"><div class="cd-num" id="cd-secs">00</div><div class="cd-label">Secs</div></div>
+  </div>
+
+  <div class="form">
+    <input type="email" id="cs-email" placeholder="your@email.com" />
+    <button id="cs-btn" onclick="joinWaitlist()">Notify Me</button>
+  </div>
+  <div class="success-msg" id="cs-success">
+    🎉 You're on the list! We'll email you the moment we launch.
+  </div>
+  <p class="hint">No spam. Just one email when we go live.</p>
+
+  <div class="features">
+    <span class="feat-chip">🔔 Knock-to-join</span>
+    <span class="feat-chip">▶ Watch queue</span>
+    <span class="feat-chip">🎥 Face cam</span>
+    <span class="feat-chip">👑 Host controls</span>
+    <span class="feat-chip">🧩 Chrome extension</span>
+    <span class="feat-chip">📍 Pin moments</span>
+  </div>
+
+  <div class="footer">© 2026 SomniWatch · Built in Nigeria 🇳🇬</div>
+</div>
+
+<script>
+  // ── Countdown ─────────────────────────────────
+  // Set your launch date here (YYYY-MM-DD)
+  const LAUNCH_DATE = new Date('2026-05-20T00:00:00Z'); // keep in sync with server.js
+
+  function updateCountdown() {
+    const now  = new Date();
+    const diff = LAUNCH_DATE - now;
+
+    if (diff <= 0) {
+      // Redirect to app when launch date hits
+      window.location.href = '/';
+      return;
+    }
+
+    const days  = Math.floor(diff / 86400000);
+    const hours = Math.floor((diff % 86400000) / 3600000);
+    const mins  = Math.floor((diff % 3600000)  / 60000);
+    const secs  = Math.floor((diff % 60000)    / 1000);
+
+    document.getElementById('cd-days').textContent  = String(days).padStart(2,'0');
+    document.getElementById('cd-hours').textContent = String(hours).padStart(2,'0');
+    document.getElementById('cd-mins').textContent  = String(mins).padStart(2,'0');
+    document.getElementById('cd-secs').textContent  = String(secs).padStart(2,'0');
+  }
+
+  updateCountdown();
+  setInterval(updateCountdown, 1000);
+
+  // ── Waitlist form ─────────────────────────────
+  async function joinWaitlist() {
+    const email = document.getElementById('cs-email').value.trim();
+    if (!email || !email.includes('@')) {
+      document.getElementById('cs-email').focus();
+      return;
+    }
+    const btn = document.getElementById('cs-btn');
+    btn.disabled = true;
+    btn.textContent = 'Adding…';
+
+    try {
+      const res = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, source: 'coming-soon' })
+      });
+      const data = await res.json();
+      if (data.ok || data.duplicate) {
+        document.querySelector('.form').style.display = 'none';
+        document.getElementById('cs-success').classList.add('show');
+        if (data.duplicate) {
+          document.getElementById('cs-success').textContent = "You're already on the list — we haven't forgotten you 😊";
+        }
+      } else {
+        btn.disabled = false;
+        btn.textContent = 'Notify Me';
+      }
+    } catch {
+      btn.disabled = false;
+      btn.textContent = 'Notify Me';
+    }
+  }
+
+  document.getElementById('cs-email').addEventListener('keydown', e => {
+    if (e.key === 'Enter') joinWaitlist();
+  });
+</script>
+</body>
+</html>
