@@ -16,7 +16,7 @@ export default function JoinPage() {
     if (!roomId) return
     axios.get(`/api/room/${roomId}`)
       .then(({ data }) => { setRoomInfo({ videoUrl: data.videoUrl, userCount: data.userCount }); setLoading(false) })
-      .catch(() => { setError('Room not found or expired'); setLoading(false) })
+      .catch(() => { setRoomInfo({ videoUrl: null, userCount: 0 }); setLoading(false) })
   }, [roomId])
 
   useEffect(() => { if (userName) setName(userName) }, [userName])
