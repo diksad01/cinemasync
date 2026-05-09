@@ -13,6 +13,7 @@ import SyncToast from '@/components/SyncToast'
 import EmojiReaction from '@/components/EmojiReaction'
 import WaitingOverlay from '@/components/WaitingOverlay'
 import ThemeSwitcher from '@/components/ThemeSwitcher'
+import VideoQueue from '@/components/VideoQueue'
 
 export default function WatchRoom() {
   const { roomId } = useParams<{ roomId: string }>()
@@ -130,6 +131,7 @@ export default function WatchRoom() {
         </div>
         <div className="flex items-center gap-2">
           <button onClick={copyLink} className="text-xs interactive" style={{ color: 'var(--cyan)' }}>Copy Link</button>
+          <VideoQueue />
           <ThemeSwitcher userPlan={plan.tier} />
           <button onClick={toggleChat} className="text-xs interactive hover:text-sw-text" style={{ color: 'var(--muted)' }}>
             {isChatOpen ? 'Hide Chat' : 'Show Chat'}

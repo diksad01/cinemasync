@@ -34,6 +34,12 @@ interface SomniStore {
 
   theme: string
   setTheme: (id: string) => void
+
+  queue: { url: string; title: string; type: string }[]
+  addToQueue: (item: { url: string; title: string; type: string }) => void
+  removeFromQueue: (index: number) => void
+  setQueue: (q: { url: string; title: string; type: string }[]) => void
+  playNext: () => { url: string; title: string; type: string } | null
 }
 
 const savedName = typeof window !== 'undefined' ? localStorage.getItem('sw_name') || '' : ''
@@ -81,5 +87,17 @@ export const useStore = create<SomniStore>((set) => ({
   setTheme: (id) => {
     localStorage.setItem('sw_theme', id)
     set({ theme: id })
+  },
+
+  queue: [],
+  addToQueue: (item) => set((s) => ({ queue: [...s.queue, item] })),
+  removeFromQueue: (index) => set((s) => ({ queue: s.queue.filter((_, i) => i !== index) })),
+  setQueue: (q) => set({ queue: q }),
+  playNext: () => {
+    const state = useStore.getState()
+    if (state.queue.length === 0) return null
+    const [next, ...rest] = state.queue
+    set({ queue: rest, videoUrl: next.url, videoType: next.type })
+    return next
   },
 }))

@@ -277,7 +277,8 @@ io.on('connection', (socket) => {
   socket.on('reaction', ({ emoji }) => { if (currentRoom) io.to(currentRoom).emit('reaction', { emoji, from: currentUser, id: socket.id }); });
   socket.on('typing', ({ isTyping }) => { if (currentRoom) socket.to(currentRoom).emit('typing', { userName: currentUser, isTyping, id: socket.id }); });
   socket.on('countdown_start', () => { if (currentRoom) io.to(currentRoom).emit('countdown_start', { from: currentUser }); });
-  socket.on('queue_add', ({ url }) => { if (currentRoom) socket.to(currentRoom).emit('queue_add', { url }); });
+  socket.on('queue_add', ({ url, title, type }) => { if (currentRoom) socket.to(currentRoom).emit('queue_add', { url, title, type }); });
+  socket.on('queue_sync', ({ queue }) => { if (currentRoom) socket.to(currentRoom).emit('queue_sync', { queue }); });
 
   // ── P2P File sharing — WebRTC signaling (no file data touches the server) ──
   socket.on('file_offer', ({ roomId, fileName, fileSize, fileType }) => {

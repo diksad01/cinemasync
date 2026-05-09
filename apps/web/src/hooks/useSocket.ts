@@ -75,6 +75,14 @@ export function useSocket(roomId: string | null, userName: string, userColor: st
       addMessage({ id: crypto.randomUUID(), userId: 'system', name: 'System', text: `${from} started a countdown`, timestamp: Date.now(), isSystem: true })
     })
 
+    socket.on('queue_add', ({ url, title, type }: { url: string; title: string; type: string }) => {
+      useStore.getState().addToQueue({ url, title, type })
+    })
+
+    socket.on('queue_sync', ({ queue }: { queue: { url: string; title: string; type: string }[] }) => {
+      useStore.getState().setQueue(queue)
+    })
+
     return () => {
       socket.disconnect()
       socketRef.current = null
