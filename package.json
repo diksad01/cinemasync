@@ -13,8 +13,7 @@
     "build": "npm run build -w apps/web",
     "build:web": "npm run build -w apps/web",
     "build:ext": "npm run build -w apps/extension",
-    "start": "node apps/server/server.js",
-    "postinstall": "npm run build:web"
+    "start": "node server.js"
   },
   "engines": {
     "node": ">=18.0.0"
