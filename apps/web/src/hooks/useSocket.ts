@@ -8,7 +8,7 @@ export function getSocket() {
   return globalSocket
 }
 
-export function useSocket(roomId: string | null, userName: string, userColor: string) {
+export function useSocket(roomId: string | null, userName: string, userColor: string, maxViewers?: number) {
   const socketRef = useRef<Socket | null>(null)
   const {
     setConnected, setUsers, setHostId, setVideoUrl,
@@ -25,7 +25,7 @@ export function useSocket(roomId: string | null, userName: string, userColor: st
 
     socket.on('connect', () => {
       setConnected(true)
-      socket.emit('join', { roomCode: roomId, userName, userColor })
+      socket.emit('join', { roomCode: roomId, userName, userColor, maxViewers: maxViewers || 2 })
     })
 
     socket.on('disconnect', () => setConnected(false))
@@ -59,6 +59,12 @@ export function useSocket(roomId: string | null, userName: string, userColor: st
       addMessage({ id: crypto.randomUUID(), userId: 'system', name: 'System', text: 'You were removed from the room', timestamp: Date.now(), isSystem: true })
       socket.disconnect()
       setRoom(null)
+    })
+
+    socket.on('room_full', ({ maxViewers: limit }) => {
+      addMessage({ id: crypto.randomUUID(), userId: 'system', name: 'System', text: `Room is full (${limit} viewer limit). Upgrade your plan for more viewers.`, timestamp: Date.now(), isSystem: true })
+      socket.disconnect()
+      setConnected(false)
     })
 
     socket.on('reaction', ({ emoji, from }) => {

@@ -196,14 +196,21 @@ io.on('connection', (socket) => {
   let currentUser = null;
   let currentColor = '#f0c060';
 
-  socket.on('join', async ({ roomCode, userName, userColor }) => {
+  socket.on('join', async ({ roomCode, userName, userColor, maxViewers }) => {
     const code = roomCode.toUpperCase().trim();
     currentUser = userName;
     currentColor = userColor || '#f0c060';
 
     if (!rooms[code]) {
       const saved = await loadRoom(code);
-      rooms[code] = { users: {}, host: socket.id, videoUrl: saved?.videoUrl || null, videoType: saved?.videoType || null, currentTime: saved?.currentTime || 0, isPlaying: false, lastUpdate: Date.now() };
+      rooms[code] = { users: {}, host: socket.id, maxViewers: maxViewers || 2, videoUrl: saved?.videoUrl || null, videoType: saved?.videoType || null, currentTime: saved?.currentTime || 0, isPlaying: false, lastUpdate: Date.now() };
+    }
+
+    // Enforce viewer limit (host sets the limit on room creation)
+    const limit = rooms[code].maxViewers || 10;
+    if (Object.keys(rooms[code].users).length >= limit) {
+      socket.emit('room_full', { maxViewers: limit });
+      return;
     }
 
     currentRoom = code;

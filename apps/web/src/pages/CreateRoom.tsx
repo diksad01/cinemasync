@@ -2,9 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useStore } from '@/store'
 import { useRipple } from '@/hooks/useRipple'
-import { onAuthStateChanged, User } from 'firebase/auth'
-import { doc, getDoc } from 'firebase/firestore'
-import { auth, db, MASTER_UID } from '@/lib/firebase'
+import { usePlan } from '@/hooks/usePlan'
 import axios from 'axios'
 
 interface SearchResult {
@@ -36,27 +34,7 @@ export default function CreateRoom() {
   const [error, setError] = useState('')
   const [uploadFile, setUploadFile] = useState<File | null>(null)
   const [uploadProgress, setUploadProgress] = useState(0)
-
-  // Auth state
-  const [fireUser, setFireUser] = useState<User | null>(null)
-  const [plan, setPlan] = useState('free')
-
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      setFireUser(u)
-      if (!u) { setPlan('free'); return }
-      if (u.uid === MASTER_UID) { setPlan('master'); return }
-      try {
-        const snap = await getDoc(doc(db, 'users', u.uid))
-        if (snap.exists()) {
-          const d = snap.data()
-          const exp = d.expiresAt ? new Date(d.expiresAt) : null
-          setPlan(d.active && (!exp || exp > new Date()) ? (d.tier || 'free') : 'free')
-        }
-      } catch { setPlan('free') }
-    })
-    return unsub
-  }, [])
+  const { tier: plan, canUpload, isLoggedIn, user: fireUser } = usePlan()
 
   useEffect(() => { if (userName) setName(userName) }, [userName])
 
@@ -132,7 +110,6 @@ export default function CreateRoom() {
   }
 
   const planMeta = PLAN_LABELS[plan] || PLAN_LABELS.free
-  const canUpload = plan !== 'free'
 
   return (
     <div className="min-h-screen relative overflow-hidden" style={{ background: 'var(--bg)' }}>
