@@ -1,30 +1,56 @@
 import { io, Socket } from 'socket.io-client'
-
-const SERVER_URL = 'https://web-production-0cbba.up.railway.app'
+import { CONFIG } from '../lib/config'
 
 let socket: Socket | null = null
 let currentRoom: string | null = null
 let currentUser: string | null = null
+let currentColor: string = '#f0c060'
 
 // Clear stale sessions on install/update
 chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.local.clear()
 })
 
-function connectSocket(roomCode: string, userName: string, userColor: string) {
-  if (socket) { try { socket.disconnect() } catch {} }
+function getSocket(): Socket {
+  if (socket && socket.connected) return socket
 
-  socket = io(SERVER_URL, { transports: ['websocket'], reconnectionDelay: 2000 })
-  currentRoom = roomCode
-  currentUser = userName
+  // Destroy stale socket before creating new one
+  if (socket) {
+    socket.removeAllListeners()
+    socket.disconnect()
+    socket = null
+  }
+
+  socket = io(CONFIG.SERVER_URL, {
+    transports: ['websocket', 'polling'],
+    autoConnect: true,
+    reconnection: true,
+    reconnectionAttempts: 10,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
+    timeout: 10000,
+  })
 
   socket.on('connect', () => {
-    socket!.emit('join', { roomCode, userName, userColor })
+    console.log('[SomniWatch BG] Socket connected:', socket?.id)
+    broadcastStatus(true)
+    // Rejoin room after reconnect
+    if (currentRoom && currentUser) {
+      console.log('[SomniWatch BG] Rejoining room after reconnect:', currentRoom)
+      socket!.emit('join', { roomCode: currentRoom, userName: currentUser, userColor: currentColor })
+    }
     broadcastToContentScripts({ type: 'STATE', roomId: currentRoom, users: [] })
   })
 
-  socket.on('disconnect', () => {
+  socket.on('disconnect', (reason) => {
+    console.log('[SomniWatch BG] Disconnected:', reason)
+    broadcastStatus(false)
     broadcastToContentScripts({ type: 'STATE', roomId: null, users: [] })
+  })
+
+  socket.on('connect_error', (err) => {
+    console.error('[SomniWatch BG] Connection error:', err.message)
+    broadcastStatus(false)
   })
 
   // Relay events to content scripts
@@ -52,6 +78,23 @@ function connectSocket(roomCode: string, userName: string, userColor: string) {
       }
     })
   })
+
+  return socket
+}
+
+function broadcastStatus(connected: boolean) {
+  chrome.runtime.sendMessage({ type: 'CONNECTION_STATUS', connected }).catch(() => {})
+}
+
+function connectAndJoin(roomCode: string, userName: string, userColor: string) {
+  currentRoom = roomCode
+  currentUser = userName
+  currentColor = userColor
+  const sock = getSocket()
+  if (sock.connected) {
+    sock.emit('join', { roomCode, userName, userColor })
+  }
+  // If not connected yet, the 'connect' handler above will auto-rejoin
 }
 
 function broadcastToContentScripts(message: any) {
@@ -70,13 +113,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     const userName = msg.userName || 'Guest'
     const userColor = msg.userColor || '#f0c060'
     chrome.storage.local.set({ roomCode: roomId, userName, userColor })
-    connectSocket(roomId, userName, userColor)
+    connectAndJoin(roomId, userName, userColor)
     sendResponse({ roomId })
     return true
   }
 
   if (msg.type === 'GET_STATE') {
-    sendResponse({ roomId: currentRoom, connected: !!socket?.connected, users: [] })
+    const sock = socket
+    sendResponse({ roomId: currentRoom, isConnected: !!sock?.connected, users: [] })
     return true
   }
 
@@ -87,21 +131,23 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true
   }
 
-  if (msg.type === 'SEND_CHAT' && socket) {
+  if (msg.type === 'SEND_CHAT' && socket?.connected) {
     socket.emit('chat_msg', { message: msg.text, userName: msg.name || currentUser })
   }
 
-  if (msg.type === 'SYNC_PLAY' && socket) socket.emit('sync_play', { currentTime: msg.time })
-  if (msg.type === 'SYNC_PAUSE' && socket) socket.emit('sync_pause', { currentTime: msg.time })
-  if (msg.type === 'SYNC_SEEK' && socket) socket.emit('sync_seek', { currentTime: msg.time })
-  if (msg.type === 'SYNC_URL' && socket) socket.emit('sync_url', { url: msg.url, videoType: msg.videoType || 'iframe' })
-  if (msg.type === 'SEND_REACTION' && socket) socket.emit('reaction', { emoji: msg.emoji })
+  if (msg.type === 'SYNC_PLAY' && socket?.connected) socket.emit('sync_play', { currentTime: msg.time })
+  if (msg.type === 'SYNC_PAUSE' && socket?.connected) socket.emit('sync_pause', { currentTime: msg.time })
+  if (msg.type === 'SYNC_SEEK' && socket?.connected) socket.emit('sync_seek', { currentTime: msg.time })
+  if (msg.type === 'SYNC_URL' && socket?.connected) socket.emit('sync_url', { url: msg.url, videoType: msg.videoType || 'iframe' })
+  if (msg.type === 'SEND_REACTION' && socket?.connected) socket.emit('reaction', { emoji: msg.emoji })
 
   if (msg.type === 'DISCONNECT') {
-    if (socket) { socket.disconnect(); socket = null }
+    if (socket) { socket.removeAllListeners(); socket.disconnect(); socket = null }
     currentRoom = null
+    currentUser = null
     chrome.storage.local.remove(['roomCode', 'userName', 'userColor'])
     broadcastToContentScripts({ type: 'STATE', roomId: null, users: [] })
+    broadcastStatus(false)
   }
 
   return false

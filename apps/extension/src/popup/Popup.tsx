@@ -10,16 +10,36 @@ export default function Popup() {
   const [name, setName] = useState('')
   const [roomCode, setRoomCode] = useState('')
   const [connectedRoom, setConnectedRoom] = useState('')
+  const [isConnected, setIsConnected] = useState(false)
   const [toast, setToast] = useState('')
 
   useEffect(() => {
+    // Get real connection status from background on mount
+    chrome.runtime.sendMessage({ type: 'GET_STATE' }, (response: any) => {
+      if (response) {
+        setIsConnected(!!response.isConnected)
+        if (response.roomId) {
+          setConnectedRoom(response.roomId)
+          setView('session')
+        }
+      }
+    })
     chrome.storage.local.get(['roomCode', 'userName'], (d: any) => {
       if (d.userName) setName(d.userName)
-      if (d.roomCode) {
+      if (d.roomCode && !connectedRoom) {
         setConnectedRoom(d.roomCode)
         setView('session')
       }
     })
+
+    // Listen for connection status changes from background
+    const listener = (message: any) => {
+      if (message.type === 'CONNECTION_STATUS') {
+        setIsConnected(message.connected)
+      }
+    }
+    chrome.runtime.onMessage.addListener(listener)
+    return () => chrome.runtime.onMessage.removeListener(listener)
   }, [])
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2000) }
@@ -79,7 +99,9 @@ export default function Popup() {
       <div style={s.container}>
         <div style={s.logo}>SomniWatch</div>
         <div style={{ ...s.roomCode }}>{connectedRoom}</div>
-        <div style={{ color: '#4ade80', fontSize: 12, textAlign: 'center', marginBottom: 12 }}>● Connected</div>
+        <div style={{ color: isConnected ? '#4ade80' : '#ff6060', fontSize: 12, textAlign: 'center', marginBottom: 12 }}>
+          {isConnected ? '● Connected' : '○ Disconnected — reconnecting…'}
+        </div>
         <button style={s.btn} onClick={copyLink}>Copy Invite Link</button>
         <button style={s.btnDanger} onClick={leave}>Leave Room</button>
         {toast && <div style={s.toast}>{toast}</div>}
