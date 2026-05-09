@@ -14,6 +14,7 @@ import EmojiReaction from '@/components/EmojiReaction'
 import WaitingOverlay from '@/components/WaitingOverlay'
 import ThemeSwitcher from '@/components/ThemeSwitcher'
 import VideoQueue from '@/components/VideoQueue'
+import FaceCamBar from '@/components/FaceCamBar'
 
 export default function WatchRoom() {
   const { roomId } = useParams<{ roomId: string }>()
@@ -165,13 +166,20 @@ export default function WatchRoom() {
           <SyncToast />
           <EmojiReaction />
 
-          {/* File share button — bottom left of video area */}
-          <div className="absolute bottom-4 left-4 z-10">
-            <FileShareButton
-              onFileSelected={(file) => offerFile(file)}
-              isTransferring={isTransferring}
-              progress={sendProgress}
+          {/* Face cam bar — bottom of video area */}
+          <div className="absolute bottom-4 left-4 right-4 z-10 flex items-end gap-2">
+            <FaceCamBar
+              roomId={roomId || ''}
+              userName={userName}
+              canFaceCam={plan.canFaceCam}
             />
+            <div className="ml-auto">
+              <FileShareButton
+                onFileSelected={(file) => offerFile(file)}
+                isTransferring={isTransferring}
+                progress={sendProgress}
+              />
+            </div>
           </div>
         </div>
 

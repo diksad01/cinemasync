@@ -280,6 +280,41 @@ io.on('connection', (socket) => {
   socket.on('queue_add', ({ url, title, type }) => { if (currentRoom) socket.to(currentRoom).emit('queue_add', { url, title, type }); });
   socket.on('queue_sync', ({ queue }) => { if (currentRoom) socket.to(currentRoom).emit('queue_sync', { queue }); });
 
+  // ── Face Cam / Voice — WebRTC signaling relay ──────────────────
+  if (!rooms._camUsers) rooms._camUsers = {};
+
+  socket.on('cam_join', ({ roomId: rid, userName: uName }) => {
+    const code = rid || currentRoom;
+    if (!code || !rooms[code]) return;
+    if (!rooms[code].camUsers) rooms[code].camUsers = {};
+    rooms[code].camUsers[socket.id] = uName || currentUser;
+    // Tell the joining peer about existing cam users
+    const existing = Object.entries(rooms[code].camUsers)
+      .filter(([id]) => id !== socket.id)
+      .map(([id, name]) => ({ id, name }));
+    socket.emit('cam_peers', { peers: existing });
+    // Tell existing users a new cam peer joined
+    socket.to(code).emit('cam_join', { fromId: socket.id, fromName: uName || currentUser });
+  });
+
+  socket.on('cam_offer', ({ toId, offer, roomId: rid }) => {
+    io.to(toId).emit('cam_offer', { fromId: socket.id, fromName: currentUser, offer });
+  });
+
+  socket.on('cam_answer', ({ toId, answer, roomId: rid }) => {
+    io.to(toId).emit('cam_answer', { fromId: socket.id, answer });
+  });
+
+  socket.on('cam_ice', ({ toId, candidate, roomId: rid }) => {
+    io.to(toId).emit('cam_ice', { fromId: socket.id, candidate });
+  });
+
+  socket.on('cam_leave', ({ roomId: rid }) => {
+    const code = rid || currentRoom;
+    if (code && rooms[code]?.camUsers) delete rooms[code].camUsers[socket.id];
+    socket.to(code || currentRoom || '').emit('cam_leave', { fromId: socket.id });
+  });
+
   // ── P2P File sharing — WebRTC signaling (no file data touches the server) ──
   socket.on('file_offer', ({ roomId, fileName, fileSize, fileType }) => {
     const code = roomId || currentRoom;
@@ -330,6 +365,10 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     if (!currentRoom || !rooms[currentRoom]) return;
+    if (rooms[currentRoom].camUsers) {
+      delete rooms[currentRoom].camUsers[socket.id];
+      socket.to(currentRoom).emit('cam_leave', { fromId: socket.id });
+    }
     delete rooms[currentRoom].users[socket.id];
     io.to(currentRoom).emit('user_left', { name: currentUser, id: socket.id });
     io.to(currentRoom).emit('room_users', Object.values(rooms[currentRoom].users));
