@@ -1,0 +1,209 @@
+/* ── KEYFRAMES ────────────────────────────────────────── */
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(100%); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes goldPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(240,192,96,0); }
+  50%       { box-shadow: 0 0 24px 4px rgba(240,192,96,0.25); }
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50%       { opacity: 1;   transform: scale(1.04); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes floatUp {
+  0%   { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-120px) scale(1.6); }
+}
+
+@keyframes ripple {
+  0%   { transform: scale(0); opacity: 1; }
+  100% { transform: scale(4); opacity: 0; }
+}
+
+@keyframes waveIn {
+  0%   { transform: scaleX(0); opacity: 0; }
+  60%  { transform: scaleX(1.04); }
+  100% { transform: scaleX(1); opacity: 1; }
+}
+
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  14%       { transform: scale(1.15); }
+  28%       { transform: scale(1); }
+  42%       { transform: scale(1.08); }
+  70%       { transform: scale(1); }
+}
+
+@keyframes dotBlink {
+  0%, 80%, 100% { transform: scale(0); opacity: 0; }
+  40%            { transform: scale(1); opacity: 1; }
+}
+
+@keyframes scanline {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes glowBorder {
+  0%, 100% { border-color: rgba(240,192,96,0.2); }
+  50%       { border-color: rgba(240,192,96,0.6); }
+}
+
+@keyframes countdownPop {
+  0%   { transform: scale(0.5); opacity: 0; }
+  60%  { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+@keyframes progressGlow {
+  0%, 100% { box-shadow: 0 0 6px rgba(240,192,96,0.4); }
+  50%       { box-shadow: 0 0 16px rgba(240,192,96,0.8); }
+}
+
+@keyframes messageSlideIn {
+  from { opacity: 0; transform: translateX(16px) scale(0.96); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes messageSelfSlideIn {
+  from { opacity: 0; transform: translateX(-16px) scale(0.96); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(30px, -20px) scale(1.05); }
+  66%       { transform: translate(-20px, 15px) scale(0.97); }
+}
+
+@keyframes filmGrain {
+  0%, 100% { opacity: 0.03; }
+  50%       { opacity: 0.06; }
+}
+
+@keyframes typingDot {
+  0%, 60%, 100% { transform: translateY(0); }
+  30%            { transform: translateY(-6px); }
+}
+
+/* ── UTILITY CLASSES ──────────────────────────────────── */
+
+.anim-fade-up     { animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both; }
+.anim-fade-in     { animation: fadeIn 0.4s ease both; }
+.anim-scale-in    { animation: scaleIn 0.4s cubic-bezier(0.16,1,0.3,1) both; }
+.anim-slide-right { animation: slideInRight 0.5s cubic-bezier(0.16,1,0.3,1) both; }
+.anim-slide-left  { animation: slideInLeft 0.5s cubic-bezier(0.16,1,0.3,1) both; }
+.anim-slide-up    { animation: slideInUp 0.4s cubic-bezier(0.16,1,0.3,1) both; }
+.anim-gold-pulse  { animation: goldPulse 3s ease-in-out infinite; }
+.anim-breathe     { animation: breathe 3s ease-in-out infinite; }
+.anim-heartbeat   { animation: heartbeat 1.4s ease-in-out infinite; }
+.anim-glow-border { animation: glowBorder 4s ease-in-out infinite; }
+
+.anim-msg-in      { animation: messageSlideIn 0.3s cubic-bezier(0.16,1,0.3,1) both; }
+.anim-msg-self-in { animation: messageSelfSlideIn 0.3s cubic-bezier(0.16,1,0.3,1) both; }
+
+.anim-shimmer {
+  background: linear-gradient(90deg, var(--surface) 0%, rgba(255,255,255,0.05) 50%, var(--surface) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.anim-gold-shimmer {
+  background: linear-gradient(90deg, var(--gold) 0%, #fff8e0 50%, var(--gold) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Staggered children */
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 60ms; }
+.stagger > *:nth-child(3) { animation-delay: 120ms; }
+.stagger > *:nth-child(4) { animation-delay: 180ms; }
+.stagger > *:nth-child(5) { animation-delay: 240ms; }
+.stagger > *:nth-child(6) { animation-delay: 300ms; }
+.stagger > *:nth-child(7) { animation-delay: 360ms; }
+.stagger > *:nth-child(8) { animation-delay: 420ms; }
+
+/* Interactive base */
+.interactive {
+  transition:
+    transform 0.2s cubic-bezier(0.34,1.56,0.64,1),
+    opacity 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+/* Ripple */
+.ripple-wrapper { position: relative; overflow: hidden; }
+.ripple-circle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(240,192,96,0.3);
+  transform: scale(0);
+  animation: ripple 0.6s linear forwards;
+  pointer-events: none;
+}
+
+/* Orbs */
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  pointer-events: none;
+  animation: orbFloat 8s ease-in-out infinite;
+}
+.orb-gold    { background: rgba(240,192,96,0.06); }
+.orb-cyan    { background: rgba(103,232,249,0.04); }
+.orb-gold-sm { background: rgba(240,192,96,0.04); }
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

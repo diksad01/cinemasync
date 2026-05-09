@@ -8,6 +8,9 @@ import ChatSidebar from '@/components/ChatSidebar'
 import CountdownOverlay from '@/components/CountdownOverlay'
 import FileShareButton from '@/components/FileShareButton'
 import IncomingFileModal from '@/components/IncomingFileModal'
+import SyncToast from '@/components/SyncToast'
+import EmojiReaction from '@/components/EmojiReaction'
+import WaitingOverlay from '@/components/WaitingOverlay'
 
 export default function WatchRoom() {
   const { roomId } = useParams<{ roomId: string }>()
@@ -104,21 +107,30 @@ export default function WatchRoom() {
   }
 
   return (
-    <div className="h-screen bg-sw-bg flex flex-col overflow-hidden">
+    <div className="h-screen flex flex-col overflow-hidden" style={{ background: 'var(--bg)' }}>
       {/* Top bar */}
-      <header className="flex items-center justify-between px-4 py-2 border-b border-sw-light shrink-0 z-10">
+      <header
+        className="flex items-center justify-between px-4 py-2 shrink-0 z-10 glass anim-fade-up"
+        style={{ borderBottom: '1px solid var(--border)' }}
+      >
         <div className="flex items-center gap-3">
           <span className="text-sw-gold font-bold text-sm">SomniWatch</span>
           {roomId && <span className="room-code">{roomId}</span>}
-          <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-sw-green' : 'bg-sw-red'}`} />
-          <span className="text-sw-muted text-xs">{users.length} watching</span>
+          <span
+            className="w-2 h-2 rounded-full"
+            style={{
+              background: isConnected ? 'var(--green)' : 'var(--red)',
+              boxShadow: isConnected ? '0 0 6px rgba(74,222,128,0.4)' : 'none',
+            }}
+          />
+          <span className="text-xs" style={{ color: 'var(--muted)' }}>{users.length} watching</span>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={copyLink} className="text-xs text-sw-cyan hover:underline transition">Copy Link</button>
-          <button onClick={toggleChat} className="text-xs text-sw-muted hover:text-sw-text transition">
+          <button onClick={copyLink} className="text-xs interactive" style={{ color: 'var(--cyan)' }}>Copy Link</button>
+          <button onClick={toggleChat} className="text-xs interactive hover:text-sw-text" style={{ color: 'var(--muted)' }}>
             {isChatOpen ? 'Hide Chat' : 'Show Chat'}
           </button>
-          <button onClick={leave} className="text-xs text-sw-red hover:underline transition">Leave</button>
+          <button onClick={leave} className="text-xs interactive" style={{ color: 'var(--red)' }}>Leave</button>
         </div>
       </header>
 
@@ -138,21 +150,14 @@ export default function WatchRoom() {
       {/* Main content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Video area */}
-        <div className={`flex-1 relative ${isChatOpen ? '' : ''}`}>
+        <div className="flex-1 relative">
           <VideoPlayer />
           {users.length < 2 && isConnected && !videoUrl && (
-            <div className="absolute inset-0 flex items-center justify-center bg-sw-backdrop/80 z-10">
-              <div className="text-center">
-                <div className="text-4xl mb-4">⏳</div>
-                <p className="text-sw-text font-semibold text-lg">Waiting for partner...</p>
-                <p className="text-sw-muted text-sm mt-2">Share the room link to invite someone</p>
-                <button onClick={copyLink} className="btn-primary mt-4 px-6 py-2 text-sm">
-                  Copy Invite Link
-                </button>
-              </div>
-            </div>
+            <WaitingOverlay onCopyLink={copyLink} />
           )}
           <CountdownOverlay />
+          <SyncToast />
+          <EmojiReaction />
 
           {/* File share button — bottom left of video area */}
           <div className="absolute bottom-4 left-4 z-10">
@@ -166,7 +171,7 @@ export default function WatchRoom() {
 
         {/* Chat sidebar */}
         {isChatOpen && (
-          <div className="w-[340px] shrink-0 border-l border-sw-light hidden md:flex">
+          <div className="w-[340px] shrink-0 hidden md:flex">
             <ChatSidebar />
           </div>
         )}
@@ -174,7 +179,11 @@ export default function WatchRoom() {
 
       {/* Mobile chat drawer */}
       {isChatOpen && (
-        <div className="md:hidden fixed inset-x-0 bottom-0 h-[50vh] z-20 border-t border-sw-light">
+        <div className="md:hidden fixed inset-x-0 bottom-0 h-[50vh] z-20 glass-strong anim-slide-up" style={{ borderTop: '1px solid var(--border)' }}>
+          {/* Drawer handle */}
+          <div className="flex justify-center py-2">
+            <div className="w-10 h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.2)' }} />
+          </div>
           <ChatSidebar />
         </div>
       )}
