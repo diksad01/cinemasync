@@ -181,6 +181,101 @@ app.get('/api/search', async (req, res) => {
   } catch (err) { res.status(500).json({ error: 'Search failed: ' + err.message }); }
 });
 
+// ── TMDB proxy endpoints ──────────────────────────────────────────
+const TMDB_KEY = process.env.TMDB_API_KEY;
+const TMDB_BASE = 'https://api.themoviedb.org/3';
+const TMDB_IMG  = 'https://image.tmdb.org/t/p/w500';
+const TMDB_IMG_ORIG = 'https://image.tmdb.org/t/p/original';
+
+function tmdbMovie(m) {
+  return {
+    id: m.id,
+    tmdbId: m.id,
+    title: m.title || m.name || 'Untitled',
+    year: (m.release_date || m.first_air_date || '').slice(0, 4),
+    rating: m.vote_average ? m.vote_average.toFixed(1) : null,
+    votes: m.vote_count || 0,
+    overview: m.overview || '',
+    poster: m.poster_path ? `${TMDB_IMG}${m.poster_path}` : null,
+    backdrop: m.backdrop_path ? `${TMDB_IMG_ORIG}${m.backdrop_path}` : null,
+    genres: m.genre_ids || [],
+    source: 'tmdb',
+  };
+}
+
+// Genre map (TMDB genre IDs → names)
+const TMDB_GENRES = { 28:'Action',12:'Adventure',16:'Animation',35:'Comedy',80:'Crime',99:'Documentary',18:'Drama',10751:'Family',14:'Fantasy',36:'History',27:'Horror',10402:'Music',9648:'Mystery',10749:'Romance',878:'Sci-Fi',53:'Thriller',10752:'War',37:'Western' };
+
+app.get('/api/tmdb/popular', async (req, res) => {
+  if (!TMDB_KEY) return res.status(503).json({ error: 'TMDB_API_KEY not set' });
+  const { page = 1 } = req.query;
+  try {
+    const r = await axios.get(`${TMDB_BASE}/movie/popular`, { params: { api_key: TMDB_KEY, page }, timeout: 8000 });
+    res.json({ results: (r.data.results || []).map(tmdbMovie), total_pages: r.data.total_pages });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/tmdb/trending', async (req, res) => {
+  if (!TMDB_KEY) return res.status(503).json({ error: 'TMDB_API_KEY not set' });
+  try {
+    const r = await axios.get(`${TMDB_BASE}/trending/movie/week`, { params: { api_key: TMDB_KEY }, timeout: 8000 });
+    res.json({ results: (r.data.results || []).map(tmdbMovie) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/tmdb/search', async (req, res) => {
+  if (!TMDB_KEY) return res.status(503).json({ error: 'TMDB_API_KEY not set' });
+  const { q, page = 1 } = req.query;
+  if (!q) return res.status(400).json({ error: 'q required' });
+  try {
+    const r = await axios.get(`${TMDB_BASE}/search/movie`, { params: { api_key: TMDB_KEY, query: q, page }, timeout: 8000 });
+    res.json({ results: (r.data.results || []).map(tmdbMovie), total_pages: r.data.total_pages });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/tmdb/genre/:genreId', async (req, res) => {
+  if (!TMDB_KEY) return res.status(503).json({ error: 'TMDB_API_KEY not set' });
+  const { page = 1 } = req.query;
+  try {
+    const r = await axios.get(`${TMDB_BASE}/discover/movie`, { params: { api_key: TMDB_KEY, with_genres: req.params.genreId, sort_by: 'popularity.desc', page }, timeout: 8000 });
+    res.json({ results: (r.data.results || []).map(tmdbMovie), total_pages: r.data.total_pages });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/tmdb/movie/:id', async (req, res) => {
+  if (!TMDB_KEY) return res.status(503).json({ error: 'TMDB_API_KEY not set' });
+  try {
+    const [details, videos] = await Promise.all([
+      axios.get(`${TMDB_BASE}/movie/${req.params.id}`, { params: { api_key: TMDB_KEY }, timeout: 8000 }),
+      axios.get(`${TMDB_BASE}/movie/${req.params.id}/videos`, { params: { api_key: TMDB_KEY }, timeout: 8000 }),
+    ]);
+    const m = details.data;
+    const trailer = (videos.data.results || []).find(v => v.type === 'Trailer' && v.site === 'YouTube');
+    res.json({
+      ...tmdbMovie(m),
+      runtime: m.runtime,
+      tagline: m.tagline,
+      genres: (m.genres || []).map(g => g.name),
+      trailerKey: trailer?.key || null,
+      imdbId: m.imdb_id,
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Archive.org search by movie title (used for finding playable source)
+app.get('/api/archive/find', async (req, res) => {
+  const { title, year } = req.query;
+  if (!title) return res.status(400).json({ error: 'title required' });
+  try {
+    const q = `title:(${title}) AND mediatype:movies${year ? ` AND year:${year}` : ''}`;
+    const r = await axios.get('https://archive.org/advancedsearch.php', { params: { q, fl: 'identifier,title', rows: 5, output: 'json' }, timeout: 8000 });
+    const docs = r.data?.response?.docs || [];
+    if (!docs.length) return res.json({ found: false });
+    const id = docs[0].identifier;
+    res.json({ found: true, identifier: id, archiveUrl: `https://archive.org/embed/${id}`, directUrl: `https://archive.org/download/${id}/${id}.mp4` });
+  } catch { res.json({ found: false }); }
+});
+
 app.get('/api/room/:code', (req, res) => {
   const code = req.params.code.toUpperCase().trim();
   const room = rooms[code];
