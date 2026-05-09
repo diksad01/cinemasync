@@ -1,0 +1,36 @@
+// Socket event name constants — use these instead of raw strings
+export const EVENTS = {
+  // Client → Server
+  JOIN:            'join',
+  LEAVE_ROOM:      'leave_room',
+  CHAT_MSG:        'chat_msg',
+  SYNC_PLAY:       'sync_play',
+  SYNC_PAUSE:      'sync_pause',
+  SYNC_SEEK:       'sync_seek',
+  SYNC_URL:        'sync_url',
+  SYNC_BUFFER:     'sync_buffer',
+  REACTION:        'reaction',
+  TYPING:          'typing',
+  COUNTDOWN_START: 'countdown_start',
+  HOST_KICK:       'host_kick',
+  HOST_MUTE:       'host_mute',
+  QUEUE_ADD:       'queue_add',
+  WEBRTC_OFFER:    'webrtc_offer',
+  WEBRTC_ANSWER:   'webrtc_answer',
+  WEBRTC_ICE:      'webrtc_ice',
+  WEBRTC_STOP:     'webrtc_stop',
+
+  // Server → Client
+  ROOM_CREATED:       'room_created',
+  ROOM_JOINED:        'room_joined',
+  ROOM_STATE:         'room_state',
+  ROOM_USERS:         'room_users',
+  USER_JOINED:        'user_joined',
+  USER_LEFT:          'user_left',
+  HOST_INFO:          'host_info',
+  REQUEST_STATE_SYNC: 'request_state_sync',
+  KICKED:             'kicked',
+  MUTED:              'muted',
+  ROOM_UPLOAD:        'room_upload',
+  ERROR:              'error',
+} as const

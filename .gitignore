@@ -3,3 +3,6 @@ node_modules/
 *.log
 .DS_Store
 windsurf_deployment.yaml
+_old_backup/
+somniwatch/
+apps/web/dist/

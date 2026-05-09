@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --gold: #f0c060;
+  --bg: #06080f;
+  --surface: #0e1117;
+  --text: #e8eaf0;
+  --muted: #7a8199;
+  --cyan: #67e8f9;
+  --green: #4ade80;
+  --red: #ff6060;
+  --border: rgba(255,255,255,0.07);
+  --border-gold: rgba(240,192,96,0.2);
+  --gold-glow: rgba(240,192,96,0.12);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #06080f;
+  color: #e8eaf0;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+/* Gold button */
+.btn-primary {
+  @apply font-semibold border-none rounded-xl px-6 py-3 cursor-pointer transition-all duration-200;
+  background: linear-gradient(135deg, #f0c060, #f0a03c);
+  color: #06080f;
+}
+.btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
+
+/* Surface card */
+.card {
+  @apply rounded-[14px] p-5;
+  background: #0e1117;
+  border: 1px solid rgba(255,255,255,0.07);
+}
+.card-gold { border-color: rgba(240,192,96,0.2); }
+
+/* Input */
+.sw-input {
+  @apply w-full rounded-xl px-4 py-3 text-sm outline-none transition-colors duration-200;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #e8eaf0;
+  font-family: 'DM Sans', system-ui, sans-serif;
+}
+.sw-input:focus { border-color: #f0c060; }
+.sw-input::placeholder { color: #555; }
+
+/* Room code */
+.room-code {
+  font-family: 'DM Mono', monospace;
+  color: #f0c060;
+  background: rgba(240,192,96,0.12);
+  border: 1px solid rgba(240,192,96,0.2);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  letter-spacing: 2px;
+}
+
+/* User pill */
+.user-pill {
+  @apply flex items-center gap-1.5 rounded-full px-3 py-1 text-xs;
+  background: rgba(240,192,96,0.12);
+  border: 1px solid rgba(240,192,96,0.2);
+  color: #f0c060;
+}
+
+.dot-green { @apply w-[7px] h-[7px] rounded-full; background: #4ade80; }
+.dot-red   { @apply w-[7px] h-[7px] rounded-full; background: #ff6060; }
