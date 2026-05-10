@@ -18,7 +18,7 @@ interface TmdbMovie {
   source: 'tmdb'
 }
 
-interface TmdbDetail extends TmdbMovie {
+interface TmdbDetail extends Omit<TmdbMovie, 'genres'> {
   runtime: number
   tagline: string
   genres: string[]
@@ -95,7 +95,18 @@ function MovieDetail({ movie, onPlay, onBack }: { movie: TmdbMovie; onPlay: (url
     axios.get(url).then(r => setDetail(r.data)).catch(() => {})
   }, [movie.id])
 
-  const findAndPlay = async () => {
+  const searchYouTube = () => {
+    const q = encodeURIComponent(`${movie.title} ${movie.year} full movie free`)
+    window.open(`https://www.youtube.com/results?search_query=${q}`, '_blank')
+  }
+
+  const playTrailer = () => {
+    if (!detail?.trailerKey) return
+    const url = `https://www.youtube.com/watch?v=${detail.trailerKey}`
+    onPlay(url, `${movie.title} — Trailer`, movie.poster || '')
+  }
+
+  const findOnArchive = async () => {
     setArchiveStatus('searching')
     setFinding(true)
     try {
@@ -114,12 +125,6 @@ function MovieDetail({ movie, onPlay, onBack }: { movie: TmdbMovie; onPlay: (url
 
   const playArchive = () => {
     onPlay(archiveUrl, movie.title, movie.poster || '')
-  }
-
-  const playTrailer = () => {
-    if (!detail?.trailerKey) return
-    const url = `https://www.youtube.com/watch?v=${detail.trailerKey}`
-    onPlay(url, `${movie.title} — Trailer`, movie.poster || '')
   }
 
   return (
@@ -163,46 +168,54 @@ function MovieDetail({ movie, onPlay, onBack }: { movie: TmdbMovie; onPlay: (url
 
         {/* Action buttons */}
         <div className="px-5 pb-5 space-y-2">
-          {/* Archive.org — find & play */}
-          {archiveStatus === 'idle' && (
+          {/* Trailer — primary CTA if available */}
+          {detail?.trailerKey && (
             <button
-              onClick={findAndPlay}
-              disabled={finding}
+              onClick={playTrailer}
               className="w-full py-3 rounded-xl font-bold text-sm"
               style={{ background: 'var(--gold)', color: 'var(--bg)' }}
             >
-              🎬 Find & Watch Now
+              ▶ Watch Trailer
+            </button>
+          )}
+
+          {/* YouTube search — opens in new tab */}
+          <button
+            onClick={searchYouTube}
+            className="w-full py-2.5 rounded-xl text-sm interactive flex items-center justify-center gap-2"
+            style={{ border: '1px solid var(--border)', color: 'var(--muted)', background: 'var(--surface-hover)' }}
+          >
+            <span>🔍</span> Search on YouTube
+          </button>
+
+          {/* Archive.org — for public domain / classic films */}
+          {archiveStatus === 'idle' && (
+            <button
+              onClick={findOnArchive}
+              className="w-full py-2 rounded-xl text-xs interactive"
+              style={{ border: '1px solid var(--border)', color: 'var(--faint)' }}
+            >
+              Search Archive.org (public domain only)
             </button>
           )}
           {archiveStatus === 'searching' && (
-            <div className="w-full py-3 rounded-xl text-sm text-center" style={{ border: '1px solid var(--border)', color: 'var(--muted)' }}>
-              🔍 Searching for a free stream…
+            <div className="w-full py-2 rounded-xl text-xs text-center" style={{ color: 'var(--faint)' }}>
+              🔍 Checking Archive.org…
             </div>
           )}
           {archiveStatus === 'found' && (
             <button
               onClick={playArchive}
-              className="w-full py-3 rounded-xl font-bold text-sm"
-              style={{ background: 'var(--gold)', color: 'var(--bg)' }}
+              className="w-full py-2.5 rounded-xl text-sm interactive font-medium"
+              style={{ border: '1px solid var(--gold-border)', color: 'var(--gold)', background: 'var(--gold-glow)' }}
             >
               ▶ Watch on Archive.org (Free)
             </button>
           )}
           {archiveStatus === 'notfound' && (
-            <div className="w-full py-3 rounded-xl text-xs text-center" style={{ border: '1px solid var(--border)', color: 'var(--muted)' }}>
-              Free stream not found for this title — try pasting a URL directly
+            <div className="w-full py-2 rounded-xl text-xs text-center" style={{ color: 'var(--faint)' }}>
+              Not on Archive.org — paste a URL instead
             </div>
-          )}
-
-          {/* Trailer */}
-          {detail?.trailerKey && (
-            <button
-              onClick={playTrailer}
-              className="w-full py-2.5 rounded-xl text-sm interactive"
-              style={{ border: '1px solid var(--gold-border)', color: 'var(--gold)', background: 'var(--gold-glow)' }}
-            >
-              ▶ Watch Trailer on YouTube
-            </button>
           )}
         </div>
       </div>

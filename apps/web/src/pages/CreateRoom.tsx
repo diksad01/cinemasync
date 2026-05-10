@@ -6,10 +6,14 @@ import { usePlan } from '@/hooks/usePlan'
 import axios from 'axios'
 
 interface SearchResult {
+  id: number | string
   title: string
-  identifier: string
-  thumbnail: string
-  directUrl: string
+  year?: string
+  poster?: string | null
+  thumbnail?: string
+  identifier?: string
+  directUrl?: string
+  source: 'tmdb' | 'omdb' | 'archive'
 }
 
 const PLAN_LABELS: Record<string, { icon: string; name: string }> = {
@@ -42,10 +46,19 @@ export default function CreateRoom() {
     if (!query.trim()) return
     setLoading(true); setError(''); setResults([])
     try {
-      const { data } = await axios.get(`/api/search?q=${encodeURIComponent(query)}`)
-      setResults(data)
-      if (!data.length) setError('No results found')
-    } catch { setError('Search failed') }
+      const { data } = await axios.get(`/api/tmdb/search?q=${encodeURIComponent(query)}`)
+      if (data.results?.length) {
+        setResults(data.results.map((m: any) => ({ ...m, source: 'tmdb' })))
+      } else {
+        setError('No results found')
+      }
+    } catch {
+      try {
+        const { data } = await axios.get(`/api/omdb/search?q=${encodeURIComponent(query)}`)
+        if (data.results?.length) setResults(data.results.map((m: any) => ({ ...m, source: 'omdb' })))
+        else setError('No results found')
+      } catch { setError('Search failed') }
+    }
     setLoading(false)
   }
 
@@ -197,7 +210,7 @@ export default function CreateRoom() {
             <div className="flex gap-2 mb-4">
               <input
                 className="sw-input flex-1"
-                placeholder="Search archive.org movies..."
+                placeholder="Search any movie..."
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && search()}
@@ -211,16 +224,25 @@ export default function CreateRoom() {
               </button>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6 max-h-80 overflow-y-auto stagger">
-              {results.map(r => (
-                <button
-                  key={r.identifier}
-                  className={`card p-2 text-left anim-fade-up ${url === r.directUrl ? 'card-gold' : ''}`}
-                  onClick={() => setUrl(r.directUrl)}
-                >
-                  <img src={r.thumbnail} alt={r.title} className="w-full aspect-video object-cover rounded-lg mb-2" style={{ background: 'var(--surface)' }} />
-                  <p className="text-xs text-sw-text line-clamp-2">{r.title}</p>
-                </button>
-              ))}
+              {results.map((r, i) => {
+                const poster = r.poster || r.thumbnail || ''
+                const ytSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${r.title} ${r.year || ''} full movie`)}`
+                return (
+                  <button
+                    key={r.id ?? r.identifier ?? i}
+                    className="card p-2 text-left anim-fade-up flex flex-col"
+                    onClick={() => window.open(ytSearchUrl, '_blank')}
+                    title={`Search "${r.title}" on YouTube`}
+                  >
+                    {poster
+                      ? <img src={poster} alt={r.title} className="w-full rounded-lg mb-2 object-cover" style={{ aspectRatio: '2/3', background: 'var(--surface)' }} />
+                      : <div className="w-full rounded-lg mb-2 flex items-center justify-center text-3xl" style={{ aspectRatio: '2/3', background: 'var(--surface)' }}>🎬</div>
+                    }
+                    <p className="text-xs text-sw-text line-clamp-2">{r.title}</p>
+                    {r.year && <p className="text-[10px] mt-0.5" style={{ color: 'var(--faint)' }}>{r.year}</p>}
+                  </button>
+                )
+              })}
             </div>
           </div>
         )}
